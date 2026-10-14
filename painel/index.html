@@ -1,0 +1,1624 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VigilCare — Acompanhamento de saúde</title>
+<link rel="icon" type="image/svg+xml" href="vigilcare-icone.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0f6e56">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="VigilCare">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&family=Source+Serif+4:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f7f5; --paper:#ffffff; --ink:#1f2a2a; --ink-2:#5b6b6b; --ink-3:#8f9c9c;
+  --line:#dfe5e3; --line-2:#c9d2cf;
+  --teal:#0f6e56; --teal-soft:#e1f5ee; --teal-ink:#085041;
+  --amber:#854f0b; --amber-soft:#faeeda;
+  --red:#a32d2d; --red-soft:#fcebeb;
+  --radius:8px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Source Sans 3",system-ui,sans-serif;font-size:16px;line-height:1.5}
+h1,h2,h3{font-family:"Source Serif 4",Georgia,serif;font-weight:600;margin:0}
+h1{font-size:22px}h2{font-size:19px}h3{font-size:16px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line-2);background:var(--paper);color:var(--ink);padding:7px 14px;border-radius:var(--radius)}
+button:hover{background:#f0f3f1}
+button.primario{background:var(--teal);border-color:var(--teal);color:#fff}
+button.primario:hover{background:var(--teal-ink)}
+button.perigo{color:var(--red);border-color:#e6b8b8}
+button.perigo:hover{background:var(--red-soft)}
+button.leve{border-color:transparent;background:transparent;color:var(--teal);padding:4px 8px}
+button.leve:hover{background:var(--teal-soft)}
+button:disabled{opacity:.5;cursor:default}
+input,select,textarea{font:inherit;color:var(--ink);border:1px solid var(--line-2);border-radius:var(--radius);padding:8px 10px;background:#fff;width:100%}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--teal);outline-offset:1px}
+label{display:block;font-size:14px;color:var(--ink-2);margin-bottom:4px}
+.campo{margin-bottom:14px}
+.linha{display:flex;gap:12px;align-items:flex-end}
+.linha>*{flex:1}
+.mudo{color:var(--ink-2);font-size:14px}
+.oculto{display:none !important}
+.chip{display:inline-block;font-size:13px;padding:2px 9px;border-radius:999px;background:#eef1f0;color:var(--ink-2)}
+.chip.ok{background:var(--teal-soft);color:var(--teal-ink)}
+.chip.alerta{background:var(--amber-soft);color:var(--amber)}
+.chip.erro{background:var(--red-soft);color:var(--red)}
+.chip.off{background:#eef1f0;color:var(--ink-3)}
+
+#login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+#login .caixa{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:32px;width:100%;max-width:380px}
+#login p{margin:6px 0 20px}
+
+header.topo-app{display:flex;align-items:center;justify-content:space-between;padding:10px 24px;background:var(--paper);border-bottom:1px solid var(--line)}
+header.topo-app .nome{display:flex;align-items:center;gap:10px}
+header.topo-app .nome h1{font-size:19px;letter-spacing:-.01em}
+header.topo-app .nome .sub{font-size:12px;color:var(--ink-2);margin:0}
+.marca{width:32px;height:32px;border-radius:8px;background:var(--teal-soft);color:var(--teal-ink);display:flex;align-items:center;justify-content:center;flex:0 0 32px}
+header.topo-app .direita{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--ink-2)}
+#app{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 53px)}
+.tg{display:inline-flex;align-items:center;gap:6px;cursor:pointer;margin:0}
+.tg input{position:absolute;opacity:0;width:0;height:0}
+.tg-pista{width:32px;height:18px;border-radius:999px;background:var(--line-2);position:relative;transition:background .15s}
+.tg-pista::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .15s}
+.tg input:checked+.tg-pista{background:var(--teal)}
+.tg input:checked+.tg-pista::after{left:16px}
+.tg input:focus-visible+.tg-pista{outline:2px solid var(--teal);outline-offset:1px}
+aside{background:var(--paper);border-right:1px solid var(--line);padding:20px 16px;display:flex;flex-direction:column;gap:12px}
+aside .topo{display:flex;justify-content:space-between;align-items:center}
+#lista{list-style:none;margin:0;padding:0;overflow:auto;flex:1}
+#lista li{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:var(--radius);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px}
+#lista li:hover{background:#f0f3f1}
+#lista li.ativo{background:var(--teal-soft)}
+#lista li .nome{font-weight:600}
+#lista li .sub{font-size:13px;color:var(--ink-2)}
+aside .rodape{border-top:1px solid var(--line);padding-top:12px;display:flex;gap:8px}
+
+main{padding:28px 32px;max-width:1080px}
+.vazio{color:var(--ink-2);padding:60px 0;text-align:center}
+.cabecalho{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:20px}
+.cabecalho .dados{color:var(--ink-2);font-size:15px}
+section.bloco{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px 22px;margin-bottom:16px}
+section.bloco .titulo{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{text-align:left;font-weight:600;color:var(--ink-2);font-size:13px;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.acoes{text-align:right;white-space:nowrap}
+.metricas{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.metrica{background:var(--bg);border-radius:var(--radius);padding:10px 12px}
+.metrica .r{font-size:13px;color:var(--ink-2)}
+.metrica .v{font-size:22px;font-weight:600}
+.metrica.alerta{background:var(--red-soft)}.metrica.alerta .v,.metrica.alerta .r{color:var(--red)}
+
+.dias{display:flex;gap:6px;flex-wrap:wrap}
+.dias label{display:flex;align-items:center;gap:4px;margin:0;border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;cursor:pointer;font-size:14px;color:var(--ink)}
+.dias label:has(input:checked){background:var(--teal-soft);border-color:var(--teal);color:var(--teal-ink)}
+.dias input{width:auto;margin:0}
+.horarios{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.horarios .h{display:flex;align-items:center;gap:4px;border:1px solid var(--line-2);border-radius:999px;padding:2px 4px 2px 10px}
+.horarios .h button{border:none;padding:0 6px;background:transparent;color:var(--ink-3)}
+.horarios .h button:hover{color:var(--red)}
+.horarios input[type=time]{width:130px}
+
+.modal-fundo{position:fixed;inset:0;background:rgba(20,30,30,.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}
+.modal{background:var(--paper);border-radius:12px;padding:24px 26px;width:100%;max-width:560px;max-height:92vh;overflow:auto}
+.modal.larga{max-width:900px}
+.modal h2{margin-bottom:16px}
+.modal .pe{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.modal .pe .esq{margin-right:auto}
+
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:var(--radius);font-size:15px;z-index:20;max-width:90vw}
+#toast.erro{background:var(--red)}
+#toast.ok{background:var(--teal-ink)}
+
+svg.grafico{width:100%;height:220px;display:block}
+.pagina-rel h2{margin-bottom:4px}
+#app.solo{grid-template-columns:1fr}#app.solo aside{display:none}
+@media (max-width:820px){#app{grid-template-columns:1fr}aside{border-right:none;border-bottom:1px solid var(--line)}main{padding:18px}.metricas{grid-template-columns:repeat(2,1fr)}}
+@media print{
+  body{background:#fff}aside,.cabecalho,.modal .pe,.nao-imprimir{display:none !important}
+  .modal-fundo{position:static;background:none;padding:0}.modal{max-width:none;max-height:none;overflow:visible;box-shadow:none;padding:0}
+  #app{display:none}#painel-relatorio{display:block}
+}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="caixa">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><img src="vigilcare-icone.svg" alt="" width="48" height="48"><div><h1 style="font-size:26px"><span style="color:var(--teal-ink)">Vigil</span><span style="color:var(--teal);font-weight:400">Care</span></h1></div></div>
+    <p class="mudo">Acompanhamento de saúde: remédios, medições, consultas e prontuário, com lembretes pelo WhatsApp.</p>
+    <div class="campo"><label for="usuario">Usuário</label><input id="usuario" autocomplete="username" placeholder="admin"></div>
+    <div class="campo"><label for="senha">Senha</label><input id="senha" type="password" autocomplete="current-password"></div>
+    <button class="primario" id="btn-entrar" style="width:100%">Entrar</button>
+    <p id="login-erro" class="mudo" style="color:var(--red);margin:10px 0 0"></p>
+    <p style="margin:10px 0 0"><a href="#" id="lnk-esqueci" style="color:var(--teal-ink);font-size:14px">Esqueci minha senha</a></p>
+    <p class="mudo" id="versoes" style="font-size:12px;margin-top:14px">Painel <span id="v-painel"></span> · Servidor <span id="v-api">verificando…</span></p>
+  </div>
+</div>
+
+<header class="topo-app oculto" id="topo-app">
+  <div class="nome"><img src="vigilcare-icone.svg" alt="" width="36" height="36"><div><h1><span style="color:var(--teal-ink)">Vigil</span><span style="color:var(--teal);font-weight:400">Care</span></h1><p class="sub">Acompanhamento de saúde</p></div></div>
+  <div class="direita"><span id="quem"></span><button id="btn-avisos" title="Avisos neste aparelho">🔔</button><button id="btn-meu-convite" class="oculto">Meu convite</button><button id="btn-medicos-topo" class="oculto">Médicos</button><button id="btn-sair">Sair</button></div>
+</header>
+<div id="app" class="oculto">
+  <aside>
+    <div class="topo"><h1>Pacientes</h1><button class="primario" id="btn-nova-pessoa">Novo paciente</button></div>
+    <input id="busca" placeholder="Buscar por nome ou telefone">
+    <ul id="lista"></ul>
+    <div class="rodape">
+      <button id="btn-config">Configurações</button>
+      <button id="btn-medicos">Médicos</button>
+      <button id="btn-atualizar" title="Recarregar dados">Atualizar</button>
+    </div>
+  </aside>
+  <main id="detalhe"><div class="vazio">Escolha um paciente à esquerda ou cadastre um novo.</div></main>
+</div>
+
+<div id="modais"></div>
+<div id="toast" class="oculto"></div>
+
+<script>
+// ======================= configuração =======================
+const API = "https://kxvhawrblwxgerajfsfa.supabase.co/functions/v1/painel-api";
+const DIAS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+const FUSOS = ["America/Fortaleza","America/Sao_Paulo","America/Manaus","America/Belem","America/Recife","America/Bahia","America/Cuiaba","America/Rio_Branco","America/New_York","America/Chicago","America/Denver","America/Los_Angeles"];
+
+const VERSAO_PAINEL = "018";
+let senha = sessionStorage.getItem("ls_senha") || "";
+let usuarioLogin = sessionStorage.getItem("ls_usuario") || "admin";
+let estado = { pessoas: [], leituras7d: [], envios7d: [], selecionada: null, config: {}, consultasFuturas: [], agua48h: [], medidas: [], sinais7d: [], usuario: null, medicos: [], visao: {}, fotos: {} };
+
+// ======================= utilitários =======================
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function toast(msg, tipo = "") {
+  const t = $("#toast"); t.textContent = msg; t.className = tipo; t.classList.remove("oculto");
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.add("oculto"), tipo === "erro" ? 6000 : 3000);
+}
+function fmtTel(t) { t = String(t || ""); if (t.length === 13 && t.startsWith("55")) return `+55 (${t.slice(2,4)}) ${t.slice(4,9)}-${t.slice(9)}`; if (t.length === 12 && t.startsWith("55")) return `+55 (${t.slice(2,4)}) ${t.slice(4,8)}-${t.slice(8)}`; return "+" + t; }
+function fmtData(iso, fuso, comHora = true) {
+  if (!iso) return "—";
+  const o = { timeZone: fuso || "America/Fortaleza", day: "2-digit", month: "2-digit", year: "numeric" };
+  if (comHora) { o.hour = "2-digit"; o.minute = "2-digit"; }
+  return new Intl.DateTimeFormat("pt-BR", o).format(new Date(iso));
+}
+function fmtHora(iso, fuso) { return new Intl.DateTimeFormat("pt-BR", { timeZone: fuso || "America/Fortaleza", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)); }
+function hh(h) { return String(h || "").slice(0, 5); }
+function avatarHtml(p, larg) { const alt = Math.round(larg * 4 / 3); const url = estado.fotos[p.id]; return url
+  ? `<img src="${url}" alt="" style="width:${larg}px;height:${alt}px;border-radius:${larg > 40 ? 8 : 6}px;object-fit:cover;border:1px solid var(--line);flex:0 0 ${larg}px" loading="lazy">`
+  : `<div style="width:${larg}px;height:${alt}px;border-radius:${larg > 40 ? 8 : 6}px;background:var(--teal-soft);color:var(--teal-ink);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:${Math.round(larg * .42)}px;flex:0 0 ${larg}px">${esc((p.nome || "?").trim()[0].toUpperCase())}</div>`; }
+async function carregarFotos() { const com = estado.pessoas.filter((p) => p.foto_caminho && !estado.fotos[p.id]); let mudou = false; for (const p of com) { try { const r = await api("pessoa_foto_url", { pessoa_id: p.id }); if (r.url) { estado.fotos[p.id] = r.url; mudou = true; } } catch {} } if (mudou) { renderLista(); renderDetalhe(); } }
+const medicoNome = (id) => { const m = estado.medicos.find((x) => x.id === id); return m ? `${m.nome}${m.especialidade ? " (" + m.especialidade + ")" : ""}` : ""; };
+function medicoSelectHtml(id, sel) { return `<div class="linha" style="align-items:center"><select id="${id}"><option value="">— não informado —</option>${estado.medicos.filter((m) => m.ativo || m.id === sel).map((m) => `<option value="${m.id}" ${m.id === sel ? "selected" : ""}>${esc(m.nome)}${m.especialidade ? " — " + esc(m.especialidade) : ""}</option>`).join("")}</select>${podeEditar() ? `<button type="button" class="leve" id="${id}-novo" style="flex:0;white-space:nowrap">+ novo médico</button>` : ""}</div>`; }
+function medicoSelectLigar(el, id) { const b = $(`#${id}-novo`, el); if (b) b.onclick = () => modalMedico(null, (m) => { if (!m) return; const s = $(`#${id}`, el); s.insertAdjacentHTML("beforeend", `<option value="${m.id}" selected>${esc(m.nome)}${m.especialidade ? " — " + esc(m.especialidade) : ""}</option>`); }); }
+function sugestaoLogin(nome) { const p = String(nome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9 ]/g, "").trim().split(/\s+/).filter(Boolean); return p.length ? (p.length === 1 ? p[0] : p[0] + "." + p[p.length - 1]) : ""; }
+const papel = () => estado.usuario?.papel || "";
+const ehAdmin = () => papel() === "admin";
+const podeEditar = () => papel() !== "paciente";
+function dataLocal(iso, fuso) { return new Intl.DateTimeFormat("en-CA", { timeZone: fuso || "America/Fortaleza", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(iso)); }
+function imc(peso, alturaCm) { if (!peso || !alturaCm) return null; const m = alturaCm / 100; return Math.round(10 * peso / (m * m)) / 10; }
+const CATS = { carteirinha: "Carteirinha", identidade: "Identidade", guia: "Guia de exame", laudo: "Laudo", receita: "Receita", outro: "Outro" };
+function fmtTam(b) { if (!b) return ""; return b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB"; }
+function antTexto(min) { if (min % 1440 === 0) return (min / 1440) + (min === 1440 ? " dia" : " dias"); if (min % 60 === 0) return (min / 60) + "h"; return min + " min"; }
+function diasTexto(d) { if (!d || d.length === 7) return "todos os dias"; if (d.length === 5 && !d.includes(0) && !d.includes(6)) return "seg a sex"; return [...d].sort().map((i) => DIAS[i]).join(", "); }
+function statusChip(s) {
+  const m = { confirmado: ["ok","confirmado"], enviado: ["alerta","aguardando"], sem_resposta: ["erro","sem resposta"], erro: ["erro","falha no envio"], pendente: ["off","na fila"] };
+  const [c, t] = m[s] || ["off", s]; return `<span class="chip ${c}">${t}</span>`;
+}
+
+async function api(acao, dados = {}) {
+  let r, j;
+  try {
+    const ctl = new AbortController(); const tid = setTimeout(() => ctl.abort(), 60000);
+    r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ usuario: usuarioLogin, senha, acao, ...dados }), signal: ctl.signal });
+    clearTimeout(tid);
+    j = await r.json();
+  } catch (e) { throw new Error("Sem resposta do servidor: " + e.message); }
+  if (r.status === 401) { sair(); throw new Error("Senha incorreta"); }
+  if (!r.ok || j.ok === false) throw new Error(j.erro || `Erro HTTP ${r.status}`);
+  return j.dados;
+}
+
+// ======================= login =======================
+async function entrar() {
+  const s = $("#senha").value;
+  if (!s) { $("#login-erro").textContent = "Digite a senha."; return; }
+  usuarioLogin = $("#usuario").value.trim() || "admin";
+  senha = s; $("#login-erro").textContent = "";
+  const be = $("#btn-entrar"); be.disabled = true; be.textContent = "Entrando…";
+  try { const pg = await api("ping"); estado.usuario = pg.usuario || null; sessionStorage.setItem("ls_senha", senha); sessionStorage.setItem("ls_usuario", usuarioLogin); $("#login").classList.add("oculto"); $("#app").classList.remove("oculto"); $("#topo-app").classList.remove("oculto"); await carregar(); }
+  catch (e) { senha = ""; $("#login-erro").textContent = e.message; }
+  be.disabled = false; be.textContent = "Entrar";
+}
+function sair() { senha = ""; usuarioLogin = "admin"; estado.usuario = null; sessionStorage.removeItem("ls_senha"); sessionStorage.removeItem("ls_usuario"); document.querySelectorAll(".modal-fundo").forEach((m) => m.remove()); $("#app").classList.add("oculto"); $("#topo-app").classList.add("oculto"); $("#login").classList.remove("oculto"); $("#senha").value = ""; }
+$("#btn-entrar").onclick = entrar;
+$("#lnk-esqueci").onclick = (e) => { e.preventDefault(); modalEsqueciSenha(); };
+$("#v-painel").textContent = VERSAO_PAINEL;
+(async () => {
+  const alvo = $("#v-api");
+  try {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acao: "versao" }) });
+    const j = await r.json();
+    if (j?.dados?.api) alvo.textContent = j.dados.api;
+    else { alvo.textContent = "desatualizado (anterior à v13) — publique a painel-api"; alvo.style.color = "var(--red)"; }
+  } catch { alvo.textContent = "sem resposta"; alvo.style.color = "var(--red)"; }
+})();
+$("#senha").addEventListener("keydown", (e) => { if (e.key === "Enter") entrar(); });
+$("#usuario").addEventListener("keydown", (e) => { if (e.key === "Enter") entrar(); });
+$("#btn-sair").onclick = sair;
+
+// ======================= dados =======================
+async function carregar() {
+  try {
+    const d = await api("pessoas_listar");
+    estado.pessoas = d.pessoas || []; estado.leituras7d = d.leituras_7d || []; estado.envios7d = d.envios_7d || [];
+    estado.consultasFuturas = d.consultas_futuras || []; estado.agua48h = d.agua_48h || []; estado.medidas = d.medidas || []; estado.sinais7d = d.sinais_7d || [];
+    if (!estado.usuario) { const pg = await api("ping"); estado.usuario = pg.usuario || null; }
+    try { estado.medicos = await api("medicos_listar"); } catch (e) { estado.medicos = []; console.warn("médicos:", e.message); }
+    try { estado.visao = await api("visao_geral"); } catch (e) { estado.visao = {}; console.warn("visão geral:", e.message); }
+    carregarFotos();
+    $("#quem").textContent = estado.usuario ? `${estado.usuario.nome} (@${usuarioLogin}) · ${({ admin: "administrador", medico: "médico" })[papel()] || papel()}` : "";
+    $("#btn-nova-pessoa").classList.toggle("oculto", !ehAdmin());
+    $("#btn-config").classList.toggle("oculto", !ehAdmin());
+    const solo = papel() === "paciente" || (papel() === "cuidador" && estado.pessoas.length === 1);
+    $("#app").classList.toggle("solo", solo);
+    $("#btn-medicos-topo").classList.toggle("oculto", !solo); $("#btn-medicos-topo").onclick = () => modalMedicos();
+    $("#btn-meu-convite").classList.toggle("oculto", papel() !== "medico");
+    $("#btn-meu-convite").onclick = () => { const { el } = abrirModal(`<h2>Meu convite</h2>${conviteBlocoHtml("mc")}<div class="pe"><button data-fechar>Fechar</button></div>`); (async () => { try { const c = await api("convite_meu"); conviteRender(el, "mc", c); } catch (e) { $("#mc-area", el).innerHTML = `<p class="mudo">${esc(e.message)}</p>`; } })(); };
+    if (!estado.selecionada && solo && estado.pessoas.length === 1) estado.selecionada = estado.pessoas[0].id; // admin sempre abre na visão geral
+    estado.config = await api("config_ler");
+    renderLista();
+    if (estado.selecionada && !estado.pessoas.find((p) => p.id === estado.selecionada)) estado.selecionada = null;
+    renderDetalhe();
+    if (ehAdmin() && !estado.config.admin_telefone) toast("Cadastre seu WhatsApp em Configurações para receber os alertas.", "erro");
+  } catch (e) { toast("Falha ao carregar: " + e.message, "erro"); }
+}
+$("#btn-atualizar").onclick = carregar;
+$("#busca").oninput = renderLista;
+
+function renderLista() {
+  const q = $("#busca").value.trim().toLowerCase();
+  const itens = estado.pessoas.filter((p) => !q || p.nome.toLowerCase().includes(q) || p.telefone.includes(q.replace(/\D/g, "") || "§"));
+  $("#lista").innerHTML = itens.length ? itens.map((p) => {
+    const pend = estado.envios7d.filter((e) => e.pessoa_id === p.id && (e.status === "sem_resposta" || e.status === "erro")).length;
+    const fora = estado.leituras7d.filter((l) => l.pessoa_id === p.id && l.fora_faixa).length;
+    return `<li data-id="${p.id}" class="${p.id === estado.selecionada ? "ativo" : ""}">
+      ${avatarHtml(p, 30)}<div><div class="nome">${esc(p.nome)}${p.ativa ? "" : ' <span class="chip off">pausada</span>'}</div><div class="sub">${(() => { const c = comorbidadesDe(p, estado.visao[p.id]); return c.length ? esc(c.slice(0, 3).join(" · ")) + (c.length > 3 ? " …" : "") : fmtTel(p.telefone); })()}</div></div>
+      <div>${fora ? `<span class="chip erro" title="leituras fora da faixa nos últimos 7 dias">${fora} PA</span> ` : ""}${pend ? `<span class="chip alerta" title="lembretes sem resposta ou com falha nos últimos 7 dias">${pend}</span>` : ""}</div>
+    </li>`;
+  }).join("") : `<li class="mudo" style="cursor:default">Nenhum paciente encontrado.</li>`;
+  $("#lista").querySelectorAll("li[data-id]").forEach((li) => li.onclick = () => { if (estado.selecionada !== li.dataset.id) diaMed = null; estado.selecionada = li.dataset.id; renderLista(); renderDetalhe(); });
+}
+
+function renderDetalhe() {
+  const p = estado.pessoas.find((x) => x.id === estado.selecionada);
+  const m = $("#detalhe");
+  if (!p) { renderVisaoGeral(); return; }
+
+  const agsPA = (p.agendamentos || []).filter((a) => a.tipo === "pressao");
+  const leituras = estado.leituras7d.filter((l) => l.pessoa_id === p.id);
+  const envios = estado.envios7d.filter((e) => e.pessoa_id === p.id);
+  const ultimaPorAg = {}; envios.forEach((e) => { if (!ultimaPorAg[e.agendamento_id] || e.previsto_em > ultimaPorAg[e.agendamento_id].previsto_em) ultimaPorAg[e.agendamento_id] = e; });
+  const media = leituras.length ? `${Math.round(leituras.reduce((s, l) => s + l.sistolica, 0) / leituras.length)}/${Math.round(leituras.reduce((s, l) => s + l.diastolica, 0) / leituras.length)}` : "—";
+  const ultima = leituras[0];
+  const fora = leituras.filter((l) => l.fora_faixa).length;
+  const consultas = estado.consultasFuturas.filter((c) => c.pessoa_id === p.id);
+  const agsAgua = (p.agendamentos || []).filter((a) => a.tipo === "agua");
+  const hojeLocal = dataLocal(new Date().toISOString(), p.fuso);
+  const aguaHoje = estado.agua48h.filter((r) => r.pessoa_id === p.id && dataLocal(r.registrado_em, p.fuso) === hojeLocal).reduce((s, r) => s + r.ml, 0);
+  const medidasP = estado.medidas.filter((x) => x.pessoa_id === p.id);
+  const medida = medidasP[0];
+  const alturaRef = medidasP.find((x) => x.altura_cm)?.altura_cm;
+  const sinaisP = estado.sinais7d.filter((s) => s.pessoa_id === p.id);
+  const gli = sinaisP.filter((s) => s.tipo === "glicemia"), oxi = sinaisP.filter((s) => s.tipo === "oximetria");
+  const mediaN = (arr, k) => { const v = arr.filter((x) => x[k] != null); return v.length ? Math.round(v.reduce((s, x) => s + x[k], 0) / v.length) : null; };
+  const agsDe = (t) => (p.agendamentos || []).filter((a) => a.tipo === t).sort((a, b) => a.horario.localeCompare(b.horario));
+  const agsGli = agsDe("glicemia"), agsOxi = agsDe("oximetria"), agsPeso = agsDe("peso");
+  const pesos = medidasP.filter((x) => x.peso_kg != null);
+  const pesoAtual = pesos[0]; const peso30 = pesos.find((x) => new Date(x.medido_em).getTime() <= Date.now() - 30 * 86400000);
+  const var30 = pesoAtual && peso30 ? Math.round((pesoAtual.peso_kg - peso30.peso_kg) * 10) / 10 : null;
+  const envMed = envios.filter((e) => e.tipo === "medicacao" && e.status !== "pendente");
+  const adesao = envMed.length ? Math.round(100 * envMed.filter((e) => e.status === "confirmado").length / envMed.length) + "%" : "—";
+
+  m.innerHTML = `
+  <div class="cabecalho">
+    <div style="display:flex;gap:14px;align-items:flex-start">${avatarHtml(p, 60)}<div><h1>${esc(p.nome)} ${p.ativa ? "" : '<span class="chip off">pausada</span>'}</h1>
+      <div class="dados">${fmtTel(p.telefone)}${idadeDe(estado.visao[p.id]?.nasc) ? " · " + idadeDe(estado.visao[p.id]?.nasc) + " anos" : ""}${estado.visao[p.id]?.mora ? " · mora " + esc(estado.visao[p.id].mora) : ""} · fuso ${esc(p.fuso)} · alerta acima de ${p.pa_sis_max}/${p.pa_dia_max}${p.observacoes ? " · " + esc(p.observacoes) : ""}</div></div></div>
+    <div>${podeEditar() ? `<button id="btn-editar-pessoa">Editar</button> ` : ""}${ehAdmin() ? `<button id="btn-acesso">Acesso ao painel</button> ` : ""}<button id="btn-atividade">Atividade</button> <button id="btn-anamnese">Anamnese</button> <button class="primario" id="btn-relatorio">Relatório</button></div>
+  </div>
+  ${(() => { const r = estado.visao[p.id]; const com = comorbidadesDe(p, r); const al = r?.alertas || []; return `<div style="margin:-6px 0 16px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="mudo" style="font-size:12px;letter-spacing:.06em">COMORBIDADES</span>${podeEditar() ? `<button class="leve" id="btn-comorb" style="font-size:13px">Ajustar</button>` : ""}${Array.isArray(p.comorbidades) ? '<span class="mudo" style="font-size:12px">(ajustado manualmente)</span>' : ""}</div>
+    ${com.length ? `<div>${chipsHtml(com, "erro")}</div>` : `<p class="mudo" style="margin:2px 0 0">${r ? "Nenhuma comorbidade registrada na anamnese." : "Anamnese ainda não preenchida."}</p>`}
+    ${al.length ? `<div style="margin-top:6px"><span class="mudo" style="font-size:12px;letter-spacing:.06em">ALERTAS CLÍNICOS</span><div>${chipsHtml(al, "alerta")}</div></div>` : ""}
+  </div>`; })()}
+  <section class="bloco">
+    <div class="titulo"><h2>Histórico de saúde</h2><button id="btn-historico">${p.historico_saude ? "Editar" : "Escrever"}</button></div>
+    ${p.historico_saude ? `<p style="margin:0;white-space:pre-wrap">${esc(p.historico_saude)}</p><p class="mudo" style="margin:6px 0 0">por ${esc(p.historico_por || "?")} · ${fmtData(p.historico_em, p.fuso)}</p>` : `<p class="mudo">Ainda não escrito. Pode ser preenchido pelo paciente ou cuidador, ou sugerido pela IA a partir da anamnese.</p>`}
+  </section>
+
+  <section class="bloco">
+    <div class="titulo"><h2>👥 Rede de cuidado</h2><button id="btn-convidar-familiar">+ Convidar familiar</button></div>
+    <div id="rede-area"><p class="mudo">Carregando…</p></div>
+  </section>
+
+  <section class="bloco">
+    <div class="titulo"><h2>Medicações</h2>${podeEditar() ? `<div><button id="btn-importar-receita">Importar receita</button> <button id="btn-nova-med">Adicionar remédio</button></div>` : ""}</div>
+    <div id="med-area"><p class="mudo">Carregando…</p></div>
+  </section>
+
+  <section class="bloco">
+    <div class="titulo"><h2>Remédios de uso eventual <span class="mudo" style="font-weight:400;font-size:14px">(se necessário)</span></h2>${podeEditar() ? `<button id="btn-novo-ev">Adicionar</button>` : ""}</div>
+    <div id="ev-area"><p class="mudo">Carregando…</p></div>
+  </section>
+
+  <section class="bloco">
+    <div class="titulo"><h2>Pressão arterial</h2><div>${podeEditar() ? `<button id="btn-horarios-pa">Horários de aferição</button> ` : ""}<button id="btn-nova-leitura">Lançar leitura</button></div></div>
+    <p class="mudo" style="margin:0 0 12px">Pedidos de aferição: ${agsPA.length ? agsPA.sort((a, b) => a.horario.localeCompare(b.horario)).map((a) => hh(a.horario)).join(" · ") + " (" + diasTexto(agsPA[0].dias_semana) + ")" : "nenhum horário definido"}</p>
+    <div class="metricas">
+      <div class="metrica"><div class="r">Média 7 dias</div><div class="v">${media}</div></div>
+      <div class="metrica"><div class="r">Última</div><div class="v">${ultima ? `${ultima.sistolica}/${ultima.diastolica}` : "—"}</div><div class="mudo">${ultima ? fmtData(ultima.medido_em, p.fuso) : ""}</div></div>
+      <div class="metrica ${fora ? "alerta" : ""}"><div class="r">Fora da faixa (7d)</div><div class="v">${fora}</div></div>
+      <div class="metrica"><div class="r">Adesão aos remédios (7d)</div><div class="v">${adesao}</div></div>
+    </div>
+    ${leituras.length ? `<table><thead><tr><th>Quando</th><th>Pressão</th><th>Pulso</th><th>Origem</th></tr></thead><tbody>
+      ${leituras.slice(0, 8).map((l) => `<tr><td>${fmtData(l.medido_em, p.fuso)}</td><td>${l.fora_faixa ? `<span class="chip erro">${l.sistolica}/${l.diastolica}</span>` : `${l.sistolica}/${l.diastolica}`}</td><td>${l.pulso ?? "—"}</td><td class="mudo">${l.origem}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma leitura nos últimos 7 dias.</p>`}
+  </section>
+
+  <section class="bloco">
+    <div class="titulo"><h2>Consultas e retornos</h2><div><button id="btn-hist-consultas">Histórico</button> <button id="btn-nova-consulta">Nova consulta</button></div></div>
+    ${consultas.length ? `<table><thead><tr><th>Quando</th><th>Descrição</th><th>Local</th><th>Avisos</th><th></th></tr></thead><tbody>
+      ${consultas.map((c) => `<tr><td>${fmtData(c.data_hora, p.fuso)}</td><td>${c.tipo === "retorno" ? '<span class="chip">retorno</span> ' : ""}${esc(c.descricao)}</td><td>${esc(c.local) || "—"}</td><td class="mudo">${(c.antecedencias || []).map(antTexto).join(" e ")} antes</td><td class="acoes"><button class="leve" data-consulta="${c.id}">Editar</button></td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma consulta agendada.</p>`}
+  </section>
+
+  <section class="bloco">
+    <div class="titulo"><h2>Documentos e exames</h2><button id="btn-novo-doc">Enviar arquivo</button></div>
+    <div id="docs-area"><p class="mudo">Carregando…</p></div>
+  </section>
+
+  <section class="bloco">
+    <div class="titulo"><h2>Glicemia</h2><div>${podeEditar() ? `<button id="btn-gli-horarios">Horários</button> ` : ""}<button id="btn-gli-lancar">Lançar</button></div></div>
+    <p class="mudo" style="margin:0 0 12px">Pedidos: ${agsGli.length ? agsGli.map((a) => `${hh(a.horario)} (${CTX[a.contexto] || "outro"})`).join(" · ") : "nenhum horário definido"} · alerta abaixo de ${p.gli_min} ou acima de ${p.gli_max} mg/dL</p>
+    <div class="metricas">
+      <div class="metrica"><div class="r">Média 7 dias</div><div class="v">${mediaN(gli, "glicemia") ?? "—"}</div></div>
+      <div class="metrica"><div class="r">Jejum (média)</div><div class="v">${mediaN(gli.filter((s) => s.contexto === "jejum"), "glicemia") ?? "—"}</div></div>
+      <div class="metrica"><div class="r">Última</div><div class="v">${gli[0]?.glicemia ?? "—"}</div><div class="mudo">${gli[0] ? fmtData(gli[0].medido_em, p.fuso) : ""}</div></div>
+      <div class="metrica ${gli.filter((s) => s.fora_faixa).length ? "alerta" : ""}"><div class="r">Fora da faixa (7d)</div><div class="v">${gli.filter((s) => s.fora_faixa).length}</div></div>
+    </div>
+    ${gli.length ? `<table><thead><tr><th>Quando</th><th>Glicemia</th><th>Contexto</th><th>Origem</th></tr></thead><tbody>${gli.slice(0, 6).map((s) => `<tr><td>${fmtData(s.medido_em, p.fuso)}</td><td>${s.fora_faixa ? `<span class="chip erro">${s.glicemia}</span>` : s.glicemia}</td><td class="mudo">${CTX[s.contexto] || "—"}</td><td class="mudo">${s.origem === "manual" ? "por " + esc(s.informado_por || "?") : "WhatsApp"}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma medição nos últimos 7 dias.</p>`}
+  </section>
+
+  <section class="bloco">
+    <div class="titulo"><h2>Oxímetro — SpO₂ e batimentos</h2><div>${podeEditar() ? `<button id="btn-oxi-horarios">Horários</button> ` : ""}<button id="btn-oxi-lancar">Lançar</button></div></div>
+    <p class="mudo" style="margin:0 0 12px">Pedidos: ${agsOxi.length ? agsOxi.map((a) => hh(a.horario)).join(" · ") : "nenhum horário definido"} · alerta se SpO₂ abaixo de ${p.spo2_min}% ou bpm fora de ${p.bpm_min}–${p.bpm_max}</p>
+    <div class="metricas">
+      <div class="metrica"><div class="r">SpO₂ média 7d</div><div class="v">${mediaN(oxi, "spo2") != null ? mediaN(oxi, "spo2") + "%" : "—"}</div></div>
+      <div class="metrica"><div class="r">bpm médio 7d</div><div class="v">${mediaN(oxi, "bpm") ?? "—"}</div></div>
+      <div class="metrica"><div class="r">Última</div><div class="v">${oxi[0] ? [oxi[0].spo2 != null ? oxi[0].spo2 + "%" : null, oxi[0].bpm != null ? oxi[0].bpm : null].filter(Boolean).join(" · ") : "—"}</div><div class="mudo">${oxi[0] ? fmtData(oxi[0].medido_em, p.fuso) : ""}</div></div>
+      <div class="metrica ${oxi.filter((s) => s.fora_faixa).length ? "alerta" : ""}"><div class="r">Fora da faixa (7d)</div><div class="v">${oxi.filter((s) => s.fora_faixa).length}</div></div>
+    </div>
+    ${oxi.length ? `<table><thead><tr><th>Quando</th><th>SpO₂</th><th>bpm</th><th>Origem</th></tr></thead><tbody>${oxi.slice(0, 6).map((s) => `<tr><td>${fmtData(s.medido_em, p.fuso)}</td><td>${s.spo2 != null ? (s.fora_faixa ? `<span class="chip erro">${s.spo2}%</span>` : s.spo2 + "%") : "—"}</td><td>${s.bpm != null ? (s.fora_faixa ? `<span class="chip erro">${s.bpm}</span>` : s.bpm) : "—"}</td><td class="mudo">${s.origem === "manual" ? "por " + esc(s.informado_por || "?") : "WhatsApp"}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma medição nos últimos 7 dias.</p>`}
+  </section>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <section class="bloco" style="margin-bottom:16px">
+    <div class="titulo"><h2>Peso corporal</h2><div>${podeEditar() ? `<button id="btn-peso-horarios">Horários</button> ` : ""}<button id="btn-nova-medida">Lançar</button></div></div>
+    <p class="mudo" style="margin:0 0 8px">Pedidos: ${agsPeso.length ? agsPeso.map((a) => hh(a.horario)).join(" · ") + " (" + diasTexto(agsPeso[0].dias_semana) + ")" : "nenhum"} · alerta se variar mais de ${String(p.peso_var_kg || 2).replace(".", ",")} kg em 7 dias</p>
+    ${pesoAtual ? `<div class="metricas" style="grid-template-columns:repeat(3,1fr);margin-bottom:0">
+      <div class="metrica"><div class="r">Atual</div><div class="v">${String(pesoAtual.peso_kg).replace(".", ",")} kg</div><div class="mudo">${fmtData(pesoAtual.medido_em, p.fuso, false)}</div></div>
+      <div class="metrica"><div class="r">30 dias</div><div class="v">${var30 != null ? (var30 > 0 ? "+" : "") + String(var30).replace(".", ",") + " kg" : "—"}</div></div>
+      <div class="metrica"><div class="r">IMC</div><div class="v">${imc(pesoAtual.peso_kg, alturaRef) ? String(imc(pesoAtual.peso_kg, alturaRef)).replace(".", ",") : "—"}</div><div class="mudo">${alturaRef ? (alturaRef / 100).toFixed(2).replace(".", ",") + " m" : "sem altura"}</div></div>
+    </div>${miniGrafico([...pesos].reverse().slice(-30).map((x) => ({ x: new Date(x.medido_em).getTime(), y: Number(x.peso_kg) })), "#0f6e56")}` : `<p class="mudo">Nenhum peso lançado.</p>`}
+    ${medidasP.length > 1 ? `<button class="leve" id="btn-hist-medidas" style="margin-top:8px">Ver histórico (${medidasP.length})</button>` : ""}
+  </section>
+  <section class="bloco" style="margin-bottom:16px">
+    <div class="titulo"><h2>Água hoje</h2><div>${podeEditar() ? `<button id="btn-agua-horarios">Horários</button> ` : ""}<button id="btn-agua-lancar">Lançar</button></div></div>
+    <p style="margin:0;font-size:20px;font-weight:600">${aguaHoje.toLocaleString("pt-BR")} / ${(p.agua_meta_ml || 2000).toLocaleString("pt-BR")} ml ${aguaHoje >= (p.agua_meta_ml || 2000) ? "💧" : ""}</p>
+    <p class="mudo" style="margin:4px 0 0">Lembretes: ${agsAgua.length ? agsAgua.sort((a, b) => a.horario.localeCompare(b.horario)).map((a) => hh(a.horario)).join(" · ") : "nenhum horário definido"}</p>
+  </section>
+  </div>`;
+
+  const be = $("#btn-editar-pessoa"); if (be) be.onclick = () => modalPessoa(p);
+  const ba = $("#btn-acesso"); if (ba) ba.onclick = () => modalUsuario(null, () => toast("Acesso criado.", "ok"), { papel: "paciente", pessoa_ids: [p.id], nome: p.nome });
+  const b1 = $("#btn-nova-med"); if (b1) b1.onclick = () => modalMedicacao(p, null);
+  const bi = $("#btn-importar-receita"); if (bi) bi.onclick = () => modalImportarReceita(p);
+  renderMedicacoesDia(p);
+  const b2 = $("#btn-novo-ev"); if (b2) b2.onclick = () => modalEventual(p, null);
+  renderEventuais(p);
+  $("#btn-historico").onclick = () => modalHistorico(p);
+  $("#btn-convidar-familiar").onclick = () => modalConviteFamiliar(p);
+  renderRede(p);
+  $("#btn-anamnese").onclick = () => modalAnamnese(p);
+  const bc = $("#btn-comorb"); if (bc) bc.onclick = () => modalComorbidades(p, estado.visao[p.id]);
+  const bg = $("#btn-gli-horarios"); if (bg) bg.onclick = () => modalHorariosSinal(p, "glicemia", agsGli);
+  $("#btn-gli-lancar").onclick = () => modalSinal(p, "glicemia");
+  const bo = $("#btn-oxi-horarios"); if (bo) bo.onclick = () => modalHorariosSinal(p, "oximetria", agsOxi);
+  $("#btn-oxi-lancar").onclick = () => modalSinal(p, "oximetria");
+  const bpz = $("#btn-peso-horarios"); if (bpz) bpz.onclick = () => modalHorariosSinal(p, "peso", agsPeso);
+  const bpa = $("#btn-horarios-pa"); if (bpa) bpa.onclick = () => modalHorariosPA(p, agsPA);
+  $("#btn-nova-leitura").onclick = () => modalLeitura(p);
+  $("#btn-atividade").onclick = () => modalAtividade(p);
+  $("#btn-relatorio").onclick = () => modalRelatorio(p);
+  $("#btn-nova-consulta").onclick = () => modalConsulta(p, null);
+  m.querySelectorAll("[data-consulta]").forEach((b) => b.onclick = () => modalConsulta(p, consultas.find((c) => c.id === b.dataset.consulta)));
+  $("#btn-hist-consultas").onclick = () => modalHistConsultas(p);
+  $("#btn-novo-doc").onclick = () => modalDocumento(p);
+  carregarDocs(p);
+  $("#btn-nova-medida").onclick = () => modalMedida(p);
+  const bh = $("#btn-hist-medidas"); if (bh) bh.onclick = () => modalHistMedidas(p, medidasP, alturaRef);
+  const bag = $("#btn-agua-horarios"); if (bag) bag.onclick = () => modalHorariosAgua(p, agsAgua);
+  $("#btn-agua-lancar").onclick = () => modalAgua(p);
+}
+
+// ======================= modais =======================
+function abrirModal(html, larga = false) {
+  const f = document.createElement("div"); f.className = "modal-fundo";
+  f.innerHTML = `<div class="modal ${larga ? "larga" : ""}">${html}</div>`;
+  f.addEventListener("click", (e) => { if (e.target === f) f.remove(); });
+  $("#modais").appendChild(f);
+  const fechar = () => f.remove();
+  f.querySelectorAll("[data-fechar]").forEach((b) => b.onclick = fechar);
+  return { el: f, fechar };
+}
+function diasHtml(sel = [0,1,2,3,4,5,6]) { return `<div class="dias">${DIAS.map((d, i) => `<label><input type="checkbox" value="${i}" ${sel.includes(i) ? "checked" : ""}>${d}</label>`).join("")}</div>`; }
+function diasLer(el) { return [...el.querySelectorAll(".dias input:checked")].map((i) => +i.value); }
+function horariosHtml(lista = []) { return `<div class="horarios" id="horarios">${lista.map((h) => chipHora(h)).join("")}<input type="time" id="novo-horario"><button type="button" id="add-horario">Adicionar</button></div>`; }
+function chipHora(h) { return `<span class="h" data-h="${h}">${h}<button type="button" title="remover">×</button></span>`; }
+function horariosLigar(el) {
+  const box = el.querySelector("#horarios");
+  const add = () => { const v = el.querySelector("#novo-horario").value; if (!v) return toast("Escolha um horário.", "erro"); if (box.querySelector(`[data-h="${v}"]`)) return toast("Horário já incluído.", "erro"); el.querySelector("#novo-horario").insertAdjacentHTML("beforebegin", chipHora(v)); el.querySelector("#novo-horario").value = ""; };
+  el.querySelector("#add-horario").onclick = add;
+  el.querySelector("#novo-horario").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); add(); } });
+  box.addEventListener("click", (e) => { if (e.target.tagName === "BUTTON" && e.target.closest(".h")) e.target.closest(".h").remove(); });
+}
+function horariosLer(el) { return [...el.querySelectorAll("#horarios .h")].map((s) => s.dataset.h).sort(); }
+async function executar(btn, fn) { btn.disabled = true; const t = btn.textContent; btn.textContent = "Salvando…"; try { await fn(); } catch (e) { toast(e.message, "erro"); } finally { btn.disabled = false; btn.textContent = t; } }
+
+function modalPessoa(p) {
+  const { el, fechar } = abrirModal(`
+    <h2>${p ? "Editar paciente" : "Novo paciente"}</h2>
+    <div class="campo"><label>Nome</label><input id="f-nome" value="${esc(p?.nome)}"></div>
+    <div class="campo"><label>WhatsApp (DDI + DDD + número, só dígitos — ex.: 5585999998888)</label><input id="f-tel" value="${esc(p?.telefone)}" inputmode="numeric"></div>
+    <div class="linha">
+      <div class="campo"><label>Fuso horário</label><select id="f-fuso">${FUSOS.map((f) => `<option ${(p?.fuso || "America/Fortaleza") === f ? "selected" : ""}>${f}</option>`).join("")}</select></div>
+      <div class="campo"><label>Alerta se sistólica ≥</label><input id="f-sis" type="number" value="${p?.pa_sis_max ?? 140}"></div>
+      <div class="campo"><label>Alerta se diastólica ≥</label><input id="f-dia" type="number" value="${p?.pa_dia_max ?? 90}"></div>
+    </div>
+    <div class="linha">
+      <div class="campo"><label>Glicemia: alerta abaixo de</label><input id="f-glimin" type="number" value="${p?.gli_min ?? 70}"></div>
+      <div class="campo"><label>Glicemia: alerta acima de</label><input id="f-glimax" type="number" value="${p?.gli_max ?? 180}"></div>
+      <div class="campo"><label>SpO₂: alerta abaixo de</label><input id="f-spo2" type="number" value="${p?.spo2_min ?? 92}"></div>
+    </div>
+    <div class="linha">
+      <div class="campo"><label>bpm mínimo</label><input id="f-bpmmin" type="number" value="${p?.bpm_min ?? 50}"></div>
+      <div class="campo"><label>bpm máximo</label><input id="f-bpmmax" type="number" value="${p?.bpm_max ?? 110}"></div>
+      <div class="campo"><label>Peso: alerta se variar (kg/7 dias)</label><input id="f-pesovar" inputmode="decimal" value="${String(p?.peso_var_kg ?? 2).replace(".", ",")}"></div>
+    </div>
+    <div class="campo"><label>Meta de água por dia (ml)</label><input id="f-agua" type="number" value="${p?.agua_meta_ml ?? 2000}"></div>
+    <div class="campo"><label>Grupo de acompanhamento no WhatsApp (opcional)</label>
+      <div class="linha"><select id="f-grupo"><option value="">— sem grupo —</option>${p?.grupo_whats ? `<option value="${esc(p.grupo_whats)}" selected>${esc(p.grupo_whats)}</option>` : ""}</select><button type="button" id="f-buscar-grupos" style="flex:0">Buscar grupos</button></div>
+      <div style="margin-top:8px"><label>O que o grupo recebe</label><select id="f-grupo-nivel"><option value="alertas" ${p?.grupo_nivel !== "tudo" ? "selected" : ""}>Só alertas (fora da faixa, sem resposta, consultas)</option><option value="tudo" ${p?.grupo_nivel === "tudo" ? "selected" : ""}>Tudo (alertas + confirmações)</option></select></div>
+    </div>
+    <div class="campo"><label>Observações</label><textarea id="f-obs" rows="2">${esc(p?.observacoes)}</textarea></div>
+    ${p ? `<div class="campo"><label>Foto 3×4 (aparece ao lado do nome)</label><div style="display:flex;gap:12px;align-items:center"><span id="f-foto-prev">${avatarHtml(p, 60)}</span><div><input id="f-foto" type="file" accept="image/*" style="display:none"><button type="button" class="leve" id="f-foto-btn">Escolher foto…</button> ${p.foto_caminho ? `<button type="button" class="leve perigo" id="f-foto-del">Remover</button>` : ""}<div class="mudo" style="font-size:13px;margin-top:4px">Qualquer imagem: o painel corta em 3×4 pelo centro e reduz antes de enviar.</div></div></div></div>` : ""}
+    <div class="campo"><label><input type="checkbox" id="f-ativa" style="width:auto" ${p?.ativa === false ? "" : "checked"}> Ativa (recebe lembretes)</label></div>
+    <div class="pe">${p && ehAdmin() ? `<button class="perigo esq" id="f-excluir">Excluir paciente</button>` : ""}<button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  if (p) {
+    $("#f-foto-btn", el).onclick = () => $("#f-foto", el).click();
+    $("#f-foto", el).onchange = async () => {
+      const arq = $("#f-foto", el).files[0]; if (!arq) return;
+      try {
+        const b64 = await fotoPara3x4(arq);
+        await api("pessoa_foto_salvar", { pessoa_id: p.id, arquivo_base64: b64 });
+        delete estado.fotos[p.id]; toast("Foto salva.", "ok"); carregarFotos();
+        $("#f-foto-prev", el).innerHTML = `<img src="data:image/jpeg;base64,${b64}" style="width:60px;height:80px;border-radius:8px;object-fit:cover;border:1px solid var(--line)">`;
+        await carregar();
+      } catch (err) { toast(err.message, "erro"); }
+    };
+    const fd = $("#f-foto-del", el); if (fd) fd.onclick = async () => { if (!confirm("Remover a foto?")) return; try { await api("pessoa_foto_excluir", { pessoa_id: p.id }); delete estado.fotos[p.id]; toast("Foto removida.", "ok"); await carregar(); } catch (err) { toast(err.message, "erro"); } };
+  }
+  $("#f-buscar-grupos", el).onclick = async (e) => {
+    e.target.disabled = true; e.target.textContent = "Buscando…";
+    try {
+      const grupos = await api("grupos_listar");
+      const sel = $("#f-grupo", el), atual = sel.value;
+      sel.innerHTML = `<option value="">— sem grupo —</option>` + grupos.map((g) => `<option value="${esc(g.id)}" ${g.id === atual ? "selected" : ""}>${esc(g.nome)}</option>`).join("");
+      if (atual && ![...sel.options].some((o) => o.value === atual)) sel.insertAdjacentHTML("beforeend", `<option value="${esc(atual)}" selected>${esc(atual)}</option>`);
+      toast(grupos.length + " grupos encontrados.", "ok");
+    } catch (er) { toast(er.message, "erro"); }
+    e.target.disabled = false; e.target.textContent = "Buscar grupos";
+  };
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => {
+    const r = await api("pessoa_salvar", { id: p?.id, nome: $("#f-nome", el).value, telefone: $("#f-tel", el).value, fuso: $("#f-fuso", el).value, pa_sis_max: $("#f-sis", el).value, pa_dia_max: $("#f-dia", el).value, observacoes: $("#f-obs", el).value, ativa: $("#f-ativa", el).checked, agua_meta_ml: $("#f-agua", el).value, grupo_whats: $("#f-grupo", el).value, grupo_nivel: $("#f-grupo-nivel", el).value, gli_min: $("#f-glimin", el).value, gli_max: $("#f-glimax", el).value, spo2_min: $("#f-spo2", el).value, bpm_min: $("#f-bpmmin", el).value, bpm_max: $("#f-bpmmax", el).value, peso_var_kg: $("#f-pesovar", el).value });
+    estado.selecionada = r.id; fechar(); toast("Paciente salvo.", "ok"); await carregar();
+  });
+  if (p && ehAdmin()) $("#f-excluir", el).onclick = (e) => { if (!confirm(`Excluir ${p.nome}? Todos os remédios, horários e leituras dela serão apagados. Isso não tem volta.`)) return; executar(e.target, async () => { await api("pessoa_excluir", { id: p.id }); estado.selecionada = null; fechar(); toast("Paciente excluído.", "ok"); await carregar(); }); };
+}
+
+function modalMedicacao(p, md) {
+  const ags = (md?.agendamentos || []).sort((a, b) => a.horario.localeCompare(b.horario));
+  const { el, fechar } = abrirModal(`
+    <h2>${md ? "Editar remédio" : "Adicionar remédio"} — ${esc(p.nome)}</h2>
+    <div class="linha"><div class="campo"><label>Remédio</label><input id="f-nome" value="${esc(md?.nome)}"></div><div class="campo" style="flex:.5"><label>Dose</label><input id="f-dose" value="${esc(md?.dose)}" placeholder="50mg"></div></div>
+    <div class="campo"><label>Observação (não vai na mensagem)</label><input id="f-obs" value="${esc(md?.observacao)}"></div>
+    <div class="campo"><label>Prescrito por</label>${medicoSelectHtml("f-medico", md?.medico_id)}</div>
+    <div class="campo"><label>Uso</label><div class="dias"><label><input type="radio" name="f-uso" value="continuo" ${md?.uso !== "periodo" ? "checked" : ""}>Contínuo</label><label><input type="radio" name="f-uso" value="periodo" ${md?.uso === "periodo" ? "checked" : ""}>Por período</label></div></div>
+    <div class="linha" id="f-periodo" ${md?.uso === "periodo" ? "" : 'style="display:none"'}><div class="campo"><label>Início</label><input id="f-inicio" type="date" value="${esc(md?.inicio)}"></div><div class="campo"><label>Dias</label><input id="f-dias" type="number" min="1" max="365" value="${md?.dias ?? ""}"></div><div class="campo"><label>Termina em</label><input id="f-fim" disabled value="${md?.fim ? md.fim.split("-").reverse().join("/") : ""}"></div></div>
+    <div class="campo"><label>Horários</label>${horariosHtml(ags.map((a) => hh(a.horario)))}</div>
+    <div class="campo"><label>Dias</label>${diasHtml(ags[0]?.dias_semana)}</div>
+    <div class="campo"><label><input type="checkbox" id="f-ativa" style="width:auto" ${md?.ativa === false ? "" : "checked"}> Ativo</label></div>
+    ${md?.criado_por ? `<p class="mudo">Cadastrado por ${esc(md.criado_por)}.</p>` : ""}
+    <div class="pe">${md ? `<button class="perigo esq" id="f-excluir">Excluir remédio</button>` : ""}<button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  horariosLigar(el);
+  ligarAutocomplete($("#f-nome", el), $("#f-dose", el)); medicoSelectLigar(el, "f-medico");
+  const usoSel = () => el.querySelector('[name="f-uso"]:checked').value;
+  const calcFim = () => { const i = $("#f-inicio", el).value, n = +$("#f-dias", el).value; if (i && n >= 1) { const d = new Date(i + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n - 1); $("#f-fim", el).value = d.toISOString().slice(0, 10).split("-").reverse().join("/"); } else $("#f-fim", el).value = ""; };
+  el.querySelectorAll('[name="f-uso"]').forEach((r) => r.onchange = () => { $("#f-periodo", el).style.display = usoSel() === "periodo" ? "" : "none"; });
+  $("#f-inicio", el).oninput = calcFim; $("#f-dias", el).oninput = calcFim;
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => {
+    await api("medicacao_salvar", { id: md?.id, pessoa_id: p.id, nome: $("#f-nome", el).value, dose: $("#f-dose", el).value, observacao: $("#f-obs", el).value, posologia: md?.posologia, receita_id: md?.receita_id, medico_id: $("#f-medico", el).value, ativa: $("#f-ativa", el).checked, horarios: horariosLer(el), dias_semana: diasLer(el), uso: usoSel(), inicio: $("#f-inicio", el).value, dias: $("#f-dias", el).value });
+    fechar(); toast("Remédio salvo.", "ok"); await carregar();
+  });
+  if (md) $("#f-excluir", el).onclick = (e) => { if (!confirm(`Excluir ${md.nome}? Os lembretes desse remédio deixam de ser enviados.`)) return; executar(e.target, async () => { await api("medicacao_excluir", { id: md.id }); fechar(); toast("Remédio excluído.", "ok"); await carregar(); }); };
+}
+
+function modalHorariosPA(p, ags) {
+  ags = [...ags].sort((a, b) => a.horario.localeCompare(b.horario));
+  const { el, fechar } = abrirModal(`
+    <h2>Horários de aferição — ${esc(p.nome)}</h2>
+    <p class="mudo">Nesses horários a pessoa recebe o pedido para medir a pressão e responder no WhatsApp.</p>
+    <div class="campo"><label>Horários</label>${horariosHtml(ags.map((a) => hh(a.horario)))}</div>
+    <div class="campo"><label>Dias</label>${diasHtml(ags[0]?.dias_semana)}</div>
+    <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  horariosLigar(el);
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("pressao_horarios_salvar", { pessoa_id: p.id, horarios: horariosLer(el), dias_semana: diasLer(el) }); fechar(); toast("Horários salvos.", "ok"); await carregar(); });
+}
+
+function modalLeitura(p) {
+  const agora = new Date(); agora.setSeconds(0, 0);
+  const local = new Date(agora.getTime() - agora.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const { el, fechar } = abrirModal(`
+    <h2>Lançar leitura — ${esc(p.nome)}</h2>
+    <div class="linha"><div class="campo"><label>Sistólica</label><input id="f-sis" type="number" inputmode="numeric"></div><div class="campo"><label>Diastólica</label><input id="f-dia" type="number" inputmode="numeric"></div><div class="campo"><label>Pulso (opcional)</label><input id="f-pulso" type="number" inputmode="numeric"></div></div>
+    <div class="campo"><label>Data e hora da medição</label><input id="f-quando" type="datetime-local" value="${local}"></div>
+    <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("leitura_inserir", { pessoa_id: p.id, sistolica: $("#f-sis", el).value, diastolica: $("#f-dia", el).value, pulso: $("#f-pulso", el).value, medido_em: $("#f-quando", el).value }); fechar(); toast("Leitura registrada.", "ok"); await carregar(); });
+}
+
+async function modalAtividade(p) {
+  const { el } = abrirModal(`<h2>Atividade — ${esc(p.nome)}</h2><p class="mudo">Carregando…</p><div class="pe"><button data-fechar>Fechar</button></div>`, true);
+  try {
+    const de = new Date(Date.now() - 14 * 86400000).toISOString();
+    const [envios, msgs] = await Promise.all([api("envios_listar", { pessoa_id: p.id, de }), api("mensagens_listar", { pessoa_id: p.id })]);
+    el.querySelector("p").outerHTML = `
+      <h3>Lembretes enviados (14 dias)</h3>
+      ${envios.length ? `<table><thead><tr><th>Previsto</th><th>O quê</th><th>Situação</th><th>Enviado</th><th>Respondido</th></tr></thead><tbody>${envios.map((e) => `<tr><td>${fmtData(e.previsto_em, p.fuso)}</td><td>${e.tipo === "pressao" ? "Aferição de pressão" : esc(e.agendamentos?.medicacoes?.nome || "remédio")}</td><td>${statusChip(e.status)}${e.erro ? `<div class="mudo" style="color:var(--red)">${esc(e.erro)}</div>` : ""}${e.reenviado_em ? `<div class="mudo">reenviado ${fmtHora(e.reenviado_em, p.fuso)}</div>` : ""}</td><td>${e.enviado_em ? fmtHora(e.enviado_em, p.fuso) : "—"}</td><td>${e.respondido_em ? fmtHora(e.respondido_em, p.fuso) : "—"}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhum lembrete no período.</p>`}
+      <h3 style="margin-top:18px">Mensagens recebidas</h3>
+      ${msgs.length ? `<table><thead><tr><th>Quando</th><th>Mensagem</th><th>Entendido como</th></tr></thead><tbody>${msgs.slice(0, 50).map((m) => `<tr><td>${fmtData(m.recebido_em, p.fuso)}</td><td>${esc(m.texto)}</td><td class="mudo">${esc(m.interpretado_como)}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma mensagem recebida ainda.</p>`}`;
+  } catch (e) { el.querySelector("p").textContent = "Falha ao carregar: " + e.message; }
+}
+
+// ======================= consultas =======================
+function modalConsulta(p, c) {
+  const paraLocal = (iso) => { const d = new Date(iso); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+  const ants = c?.antecedencias || [1440, 180];
+  const { el, fechar } = abrirModal(`
+    <h2>${c ? "Editar" : "Nova"} consulta — ${esc(p.nome)}</h2>
+    <div class="linha"><div class="campo" style="flex:.6"><label>Tipo</label><select id="f-tipo"><option value="consulta" ${c?.tipo !== "retorno" ? "selected" : ""}>Consulta</option><option value="retorno" ${c?.tipo === "retorno" ? "selected" : ""}>Retorno</option></select></div>
+    <div class="campo"><label>Descrição (vai na mensagem)</label><input id="f-desc" value="${esc(c?.descricao)}" placeholder="Cardiologista — Dr. Ramos"></div></div>
+    <div class="campo"><label>Médico</label>${medicoSelectHtml("f-medico", c?.medico_id)}</div>
+    <div class="linha"><div class="campo"><label>Local</label><input id="f-local" value="${esc(c?.local)}"></div>
+    <div class="campo"><label>Data e hora</label><input id="f-quando" type="datetime-local" value="${c ? paraLocal(c.data_hora) : ""}"></div></div>
+    <div class="campo"><label>Avisar antes (minutos; use 1440 = 1 dia, 180 = 3h)</label><input id="f-ants" value="${ants.join(", ")}"></div>
+    <div class="linha">
+      <div class="campo"><label><input type="checkbox" id="f-avpac" style="width:auto" ${c?.avisar_paciente === false ? "" : "checked"}> Avisar paciente</label></div>
+      <div class="campo"><label><input type="checkbox" id="f-avadm" style="width:auto" ${c?.avisar_admin === false ? "" : "checked"}> Avisar você</label></div>
+      ${c ? `<div class="campo"><label>Situação</label><select id="f-status"><option value="agendada" ${c.status === "agendada" ? "selected" : ""}>Agendada</option><option value="realizada" ${c.status === "realizada" ? "selected" : ""}>Realizada</option><option value="cancelada" ${c.status === "cancelada" ? "selected" : ""}>Cancelada</option></select></div>` : ""}
+    </div>
+    <div class="campo"><label>Observações</label><textarea id="f-obs" rows="2">${esc(c?.observacoes)}</textarea></div>
+    ${c?.criado_por ? `<p class="mudo">Criada por ${esc(c.criado_por)}.</p>` : ""}
+    <p class="mudo">Alterar a data reinicia os avisos: os que já saíram não saem de novo para o mesmo tempo, e os novos valem para a nova data.</p>
+    <div class="pe">${c ? `<button class="perigo esq" id="f-excluir">Excluir</button>` : ""}<button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  medicoSelectLigar(el, "f-medico");
+  $("#f-medico", el).onchange = () => { const m = estado.medicos.find((x) => x.id === $("#f-medico", el).value); if (m && !$("#f-desc", el).value) $("#f-desc", el).value = `${m.especialidade ? m.especialidade + " — " : ""}${m.nome}`; if (m && !$("#f-local", el).value && m.endereco) $("#f-local", el).value = m.endereco; };
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => {
+    const quando = $("#f-quando", el).value; if (!quando) throw new Error("Informe data e hora");
+    const ants2 = $("#f-ants", el).value.split(",").map((s) => parseInt(s.trim())).filter((n) => n >= 15 && n <= 43200);
+    await api("consulta_salvar", { id: c?.id, pessoa_id: p.id, tipo: $("#f-tipo", el).value, descricao: $("#f-desc", el).value, local: $("#f-local", el).value, data_hora: quando, antecedencias: ants2, medico_id: $("#f-medico", el).value, avisar_paciente: $("#f-avpac", el).checked, avisar_admin: $("#f-avadm", el).checked, status: c ? $("#f-status", el).value : "agendada", observacoes: $("#f-obs", el).value });
+    fechar(); toast("Consulta salva.", "ok"); await carregar();
+  });
+  if (c) $("#f-excluir", el).onclick = (e) => { if (!confirm("Excluir esta consulta? Os avisos deixam de ser enviados.")) return; executar(e.target, async () => { await api("consulta_excluir", { id: c.id }); fechar(); toast("Consulta excluída.", "ok"); await carregar(); }); };
+}
+async function modalHistConsultas(p) {
+  const { el } = abrirModal(`<h2>Consultas — ${esc(p.nome)}</h2><p class="mudo">Carregando…</p><div class="pe"><button data-fechar>Fechar</button></div>`, true);
+  try {
+    const lista = await api("consultas_listar", { pessoa_id: p.id });
+    el.querySelector("p").outerHTML = lista.length ? `<table><thead><tr><th>Quando</th><th>Descrição</th><th>Situação</th></tr></thead><tbody>${lista.map((c) => `<tr><td>${fmtData(c.data_hora, p.fuso)}</td><td>${c.tipo === "retorno" ? '<span class="chip">retorno</span> ' : ""}${esc(c.descricao)}${c.local ? `<div class="mudo">${esc(c.local)}</div>` : ""}</td><td><span class="chip ${c.status === "realizada" ? "ok" : c.status === "cancelada" ? "off" : "alerta"}">${c.status}</span></td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma consulta registrada.</p>`;
+  } catch (e) { el.querySelector("p").textContent = "Falha: " + e.message; }
+}
+
+// ======================= documentos =======================
+async function carregarDocs(p) {
+  const area = $("#docs-area"); if (!area) return;
+  try {
+    const docs = await api("documentos_listar", { pessoa_id: p.id });
+    area.innerHTML = docs.length ? `<table><thead><tr><th>Título</th><th>Categoria</th><th>Data</th><th>Tamanho</th><th></th></tr></thead><tbody>
+      ${docs.map((d) => `<tr><td>${esc(d.titulo)}${d.enviado_por ? `<div class="mudo">por ${esc(d.enviado_por)}</div>` : ""}</td><td class="mudo">${CATS[d.categoria] || d.categoria}</td><td class="mudo">${d.data_documento ? fmtData(d.data_documento + "T12:00:00", p.fuso, false) : "—"}</td><td class="mudo">${fmtTam(d.tamanho)}</td>
+      <td class="acoes"><button class="leve" data-baixar="${d.id}">Baixar</button> <button class="leve perigo" data-excluir="${d.id}">Excluir</button></td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhum arquivo guardado.</p>`;
+    area.querySelectorAll("[data-baixar]").forEach((b) => b.onclick = async () => { b.disabled = true; try { const r = await api("documento_baixar", { id: b.dataset.baixar }); window.open(r.url, "_blank"); } catch (e) { toast(e.message, "erro"); } b.disabled = false; });
+    area.querySelectorAll("[data-excluir]").forEach((b) => b.onclick = async () => { if (!confirm("Excluir este arquivo? Não tem volta.")) return; b.disabled = true; try { await api("documento_excluir", { id: b.dataset.excluir }); toast("Arquivo excluído.", "ok"); carregarDocs(p); } catch (e) { toast(e.message, "erro"); b.disabled = false; } });
+  } catch (e) { area.innerHTML = `<p style="color:var(--red)">Falha ao listar: ${esc(e.message)}</p>`; }
+}
+function modalDocumento(p) {
+  const { el, fechar } = abrirModal(`
+    <h2>Enviar arquivo — ${esc(p.nome)}</h2>
+    <div class="campo"><label>Arquivo (PDF ou imagem, até 50 MB)</label><input id="f-arq" type="file"></div>
+    <div class="linha"><div class="campo"><label>Categoria</label><select id="f-cat">${Object.entries(CATS).map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</select></div>
+    <div class="campo"><label>Data do documento (opcional)</label><input id="f-data" type="date"></div></div>
+    <div class="campo"><label>Título</label><input id="f-titulo" placeholder="Carteirinha Unimed"></div>
+    <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="f-enviar">Enviar</button></div>`);
+  $("#f-arq", el).onchange = () => { const f = $("#f-arq", el).files[0]; if (f && !$("#f-titulo", el).value) $("#f-titulo", el).value = f.name.replace(/\.[^.]+$/, ""); };
+  $("#f-enviar", el).onclick = (e) => executar(e.target, async () => {
+    const f = $("#f-arq", el).files[0];
+    if (!f) throw new Error("Escolha um arquivo");
+    if (f.size > 52428800) throw new Error("Arquivo acima de 50 MB");
+    const alvo = await api("documento_upload_url", { pessoa_id: p.id, nome_arquivo: f.name });
+    const up = await fetch(alvo.url, { method: "PUT", headers: { "Content-Type": f.type || "application/octet-stream" }, body: f });
+    if (!up.ok) throw new Error("Falha no envio do arquivo (HTTP " + up.status + ")");
+    await api("documento_salvar", { pessoa_id: p.id, caminho: alvo.caminho, titulo: $("#f-titulo", el).value, categoria: $("#f-cat", el).value, mime: f.type, tamanho: f.size, data_documento: $("#f-data", el).value || null });
+    fechar(); toast("Arquivo guardado.", "ok"); carregarDocs(p);
+  });
+}
+
+// ======================= medidas e água =======================
+function modalMedida(p) {
+  const agora = new Date(); agora.setSeconds(0, 0);
+  const local = new Date(agora.getTime() - agora.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const { el, fechar } = abrirModal(`
+    <h2>Lançar medida — ${esc(p.nome)}</h2>
+    <div class="linha"><div class="campo"><label>Peso (kg)</label><input id="f-peso" inputmode="decimal" placeholder="78,4"></div><div class="campo"><label>Altura (cm)</label><input id="f-alt" inputmode="decimal" placeholder="172"></div></div>
+    <div class="campo"><label>Quando</label><input id="f-quando" type="datetime-local" value="${local}"></div>
+    <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("medida_inserir", { pessoa_id: p.id, peso_kg: $("#f-peso", el).value, altura_cm: $("#f-alt", el).value, medido_em: $("#f-quando", el).value }); fechar(); toast("Medida registrada.", "ok"); await carregar(); });
+}
+function modalHistMedidas(p, medidas, alturaRef) {
+  const { el } = abrirModal(`<h2>Medidas — ${esc(p.nome)}</h2>
+    <table><thead><tr><th>Quando</th><th>Peso</th><th>Altura</th><th>IMC</th><th></th></tr></thead><tbody>
+    ${medidas.map((m) => `<tr><td>${fmtData(m.medido_em, p.fuso)}</td><td>${m.peso_kg ? String(m.peso_kg).replace(".", ",") + " kg" : "—"}</td><td>${m.altura_cm ? m.altura_cm + " cm" : "—"}</td><td>${imc(m.peso_kg, m.altura_cm || alturaRef) ?? "—"}</td><td class="acoes"><button class="leve perigo" data-del="${m.id}">Excluir</button></td></tr>`).join("")}</tbody></table>
+    <div class="pe"><button data-fechar>Fechar</button></div>`, true);
+  el.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => { if (!confirm("Excluir esta medida?")) return; try { await api("medida_excluir", { id: b.dataset.del }); toast("Medida excluída.", "ok"); el.remove(); await carregar(); } catch (e) { toast(e.message, "erro"); } });
+}
+function modalHorariosAgua(p, ags) {
+  ags = [...ags].sort((a, b) => a.horario.localeCompare(b.horario));
+  const { el, fechar } = abrirModal(`
+    <h2>Lembretes de água — ${esc(p.nome)}</h2>
+    <p class="mudo">Nesses horários a pessoa recebe o lembrete de beber água com o total do dia. A meta diária fica no cadastro da pessoa (Editar).</p>
+    <div class="campo"><label>Horários</label>${horariosHtml(ags.map((a) => hh(a.horario)))}</div>
+    <div class="campo"><label>Dias</label>${diasHtml(ags[0]?.dias_semana)}</div>
+    <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  horariosLigar(el);
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("agua_horarios_salvar", { pessoa_id: p.id, horarios: horariosLer(el), dias_semana: diasLer(el) }); fechar(); toast("Horários salvos.", "ok"); await carregar(); });
+}
+function modalAgua(p) {
+  const { el, fechar } = abrirModal(`
+    <h2>Lançar água — ${esc(p.nome)}</h2>
+    <div class="campo"><label>Quantidade (ml)</label><input id="f-ml" type="number" inputmode="numeric" placeholder="300"></div>
+    <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("agua_inserir", { pessoa_id: p.id, ml: $("#f-ml", el).value }); fechar(); toast("Água registrada.", "ok"); await carregar(); });
+}
+
+// ======================= remédios por turno e marcação de tomada =======================
+function turnoDe(h) { const hh = +String(h).slice(0, 2); if (hh >= 5 && hh < 12) return "Manhã"; if (hh >= 12 && hh < 18) return "Tarde"; return "Noite"; }
+function usoTexto(md) { if (md.uso !== "periodo") return "contínuo"; const f = (d) => d ? d.split("-").reverse().slice(0, 2).join("/") : "?"; return `${f(md.inicio)} → ${f(md.fim)} (${md.dias} dias)`; }
+function medAtivaNoDia(md, dataStr) { if (!md.ativa) return false; if (md.uso !== "periodo") return true; return (!md.inicio || dataStr >= md.inicio) && (!md.fim || dataStr <= md.fim); }
+let diaMed = null; // data do dia mostrado (YYYY-MM-DD no fuso da pessoa)
+
+async function renderMedicacoesDia(p) {
+  const area = $("#med-area"); if (!area) return;
+  const hojeLocal = dataLocal(new Date().toISOString(), p.fuso);
+  if (!diaMed) diaMed = hojeLocal;
+  const dataStr = diaMed;
+  const [ano, mes, dia] = dataStr.split("-").map(Number);
+  const dow = new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay();
+  const linhas = [];
+  (p.medicacoes || []).forEach((md) => { if (!medAtivaNoDia(md, dataStr)) return; (md.agendamentos || []).forEach((a) => { if (!a.ativo || !(a.dias_semana || []).includes(dow)) return; linhas.push({ md, a }); }); });
+  linhas.sort((x, y) => x.a.horario.localeCompare(y.a.horario));
+  area.innerHTML = `<p class="mudo">Carregando…</p>`;
+  let envios = [];
+  try {
+    const de = new Date(Date.UTC(ano, mes - 1, dia) - 86400000).toISOString(), ate = new Date(Date.UTC(ano, mes - 1, dia) + 2 * 86400000).toISOString();
+    envios = (await api("envios_listar", { pessoa_id: p.id, de, ate })).filter((e) => e.tipo === "medicacao" && dataLocal(e.previsto_em, p.fuso) === dataStr);
+  } catch (e) { area.innerHTML = `<p style="color:var(--red)">Falha ao carregar o dia: ${esc(e.message)}</p>`; return; }
+  const porAg = {}; envios.forEach((e) => porAg[e.agendamento_id] = e);
+  const grupos = { "Manhã": [], "Tarde": [], "Noite": [] };
+  linhas.forEach((l) => grupos[turnoDe(l.a.horario)].push(l));
+  const linhaHtml = ({ md, a }) => {
+    const e = porAg[a.id];
+    let sit;
+    if (e?.status === "confirmado") sit = `${statusChip("confirmado")} <span class="mudo">${e.respondido_em ? fmtHora(e.respondido_em, p.fuso) : ""}${e.origem_confirmacao === "painel" ? ` · informado por ${esc(e.confirmado_por || "?")}` : e.origem_confirmacao === "push" ? ` · ✓ pelo aviso no celular (${esc(e.confirmado_por || "?")})` : " · WhatsApp"}${e.observacao ? ` · ${esc(e.observacao)}` : ""}</span>`;
+    else if (e) sit = statusChip(e.status) + (e.erro ? `<div class="mudo" style="color:var(--red)">${esc(e.erro)}</div>` : "");
+    else sit = dataStr < hojeLocal ? `<span class="chip off">não registrado</span>` : `<span class="chip off">pendente</span>`;
+    const acao = (e?.status === "confirmado" ? `<button class="leve" data-desfazer="${e.id}">Desfazer</button>` : `<button class="leve" data-marcar="${a.id}" data-hora="${hh(a.horario)}" data-nome="${esc(md.nome)}">Marcar tomado</button>`) + (podeEditar() ? ` ${toggleHtml(md)}` : "");
+    const nomeHtml = podeEditar() ? `<a href="#" data-med="${md.id}" style="color:inherit;font-weight:600;text-decoration:none">${esc(md.nome)}</a>` : `<b>${esc(md.nome)}</b>`;
+    return `<tr><td style="white-space:nowrap"><b>${hh(a.horario)}</b></td><td>${nomeHtml}${md.dose ? " " + esc(md.dose) : ""} <span class="mudo">· ${usoTexto(md)}${md.medico_id ? " · " + esc(medicoNome(md.medico_id)) : ""}</span>${md.observacao ? `<div class="mudo">${esc(md.observacao)}</div>` : ""}</td><td>${sit}</td><td class="acoes">${acao}</td></tr>`;
+  };
+  const dataFmt = fmtData(`${dataStr}T12:00:00`, p.fuso, false);
+  area.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><button class="leve" id="dia-ant">‹</button><b>${dataStr === hojeLocal ? "Hoje, " : ""}${dataFmt}</b><button class="leve" id="dia-prox" ${dataStr >= hojeLocal ? "disabled" : ""}>›</button>${dataStr !== hojeLocal ? `<button class="leve" id="dia-hoje">Voltar para hoje</button>` : ""}</div>
+    ${linhas.length ? Object.entries(grupos).filter(([, l]) => l.length).map(([t, l]) => `<p style="margin:12px 0 4px;font-size:12px;color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase">${t}</p><table><tbody>${l.map(linhaHtml).join("")}</tbody></table>`).join("") : `<p class="mudo">Nenhum remédio programado para este dia.</p>`}
+    ${(p.medicacoes || []).filter((md) => !medAtivaNoDia(md, dataStr)).length ? `<details style="margin-top:12px"><summary class="mudo" style="cursor:pointer">Fora do período, pausados ou inativos (${(p.medicacoes || []).filter((md) => !medAtivaNoDia(md, dataStr)).length})</summary><table><tbody>${(p.medicacoes || []).filter((md) => !medAtivaNoDia(md, dataStr)).map((md) => `<tr><td><b>${esc(md.nome)}</b>${md.dose ? " " + esc(md.dose) : ""} <span class="mudo">· ${usoTexto(md)}${md.ativa ? "" : " · pausado"}</span></td><td class="acoes">${podeEditar() ? `<button class="leve" data-med="${md.id}">Editar</button> ${toggleHtml(md)}` : ""}</td></tr>`).join("")}</tbody></table></details>` : ""}`;
+  const mudar = (n) => { const d = new Date(Date.UTC(ano, mes - 1, dia) + n * 86400000); diaMed = d.toISOString().slice(0, 10); renderMedicacoesDia(p); };
+  $("#dia-ant", area).onclick = () => mudar(-1);
+  const bp = $("#dia-prox", area); if (bp) bp.onclick = () => mudar(1);
+  const bh = $("#dia-hoje", area); if (bh) bh.onclick = () => { diaMed = hojeLocal; renderMedicacoesDia(p); };
+  area.querySelectorAll("[data-med]").forEach((b) => b.onclick = (ev) => { ev.preventDefault(); modalMedicacao(p, p.medicacoes.find((x) => x.id === b.dataset.med)); });
+  area.querySelectorAll("[data-marcar]").forEach((b) => b.onclick = () => modalMarcarTomada(p, b.dataset.marcar, b.dataset.nome, b.dataset.hora, dataStr));
+  area.querySelectorAll("[data-toggle]").forEach((t) => t.onchange = async () => { const md = p.medicacoes.find((x) => x.id === t.dataset.toggle); t.disabled = true; try { await alternarMedicacao(p, md, t.checked); } catch (e) { toast(e.message, "erro"); t.checked = !t.checked; t.disabled = false; } });
+  area.querySelectorAll("[data-desfazer]").forEach((b) => b.onclick = async () => { if (!confirm("Desfazer esta marcação?")) return; try { await api("tomada_desfazer", { id: b.dataset.desfazer }); toast("Marcação desfeita.", "ok"); renderMedicacoesDia(p); } catch (e) { toast(e.message, "erro"); } });
+}
+function modalMarcarTomada(p, agendamentoId, nome, horaPrevista, dataStr) {
+  const agoraH = new Intl.DateTimeFormat("pt-BR", { timeZone: p.fuso, hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
+  const hojeLocal = dataLocal(new Date().toISOString(), p.fuso);
+  const { el, fechar } = abrirModal(`
+    <h2>Marcar tomado — ${esc(nome)} (${horaPrevista})</h2>
+    <p class="mudo">${fmtData(`${dataStr}T12:00:00`, p.fuso, false)}</p>
+    <div class="linha"><div class="campo"><label>Hora em que tomou</label><input id="f-hora" type="time" value="${dataStr === hojeLocal ? agoraH : horaPrevista}"></div><div class="campo" style="flex:2"><label>Observação (opcional)</label><input id="f-obs" placeholder="tomou com o almoço"></div></div>
+    <p class="mudo">Será registrado como informado por <b>${esc(estado.usuario?.nome || "?")}</b>.</p>
+    <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Confirmar</button></div>`);
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("tomada_marcar", { agendamento_id: agendamentoId, data: dataStr, hora: $("#f-hora", el).value, observacao: $("#f-obs", el).value }); fechar(); toast("Tomada registrada.", "ok"); renderMedicacoesDia(p); await carregar(); });
+}
+
+// ======================= remédios de uso eventual =======================
+async function renderEventuais(p) {
+  const area = $("#ev-area"); if (!area) return;
+  try {
+    const { medicamentos, usos_30d } = await api("eventuais_listar", { pessoa_id: p.id });
+    const ultimo = (id) => usos_30d.find((u) => u.medicamento_id === id);
+    area.innerHTML = medicamentos.length ? `<table><thead><tr><th>Remédio</th><th>Indicação e regras</th><th>Último uso</th><th></th></tr></thead><tbody>${medicamentos.map((m) => { const u = ultimo(m.id); const n30 = usos_30d.filter((x) => x.medicamento_id === m.id).length; return `<tr${m.ativo ? "" : ' style="opacity:.55"'}><td><b>${esc(m.nome)}</b>${m.dose ? " " + esc(m.dose) : ""}${m.urgencia ? ' <span class="chip erro">urgência</span>' : ""}${m.ativo ? "" : ' <span class="chip off">inativo</span>'}${m.medico_id ? `<div class="mudo">${esc(medicoNome(m.medico_id))}</div>` : ""}</td><td>${esc(m.indicacao)}<div class="mudo">${[m.intervalo_min_h ? `mínimo ${String(m.intervalo_min_h).replace(".", ",")}h entre doses` : null, m.max_dia ? `até ${m.max_dia}/dia` : null, m.instrucoes ? esc(m.instrucoes) : null].filter(Boolean).join(" · ")}</div></td><td>${u ? `${fmtData(u.tomado_em, p.fuso)}<div class="mudo">${u.origem === "painel" ? "por " + esc(u.informado_por || "?") : "WhatsApp"} · ${n30} uso(s) em 30 dias</div>` : '<span class="mudo">sem uso em 30 dias</span>'}</td><td class="acoes">${m.ativo ? `<button class="leve" data-usar="${m.id}">Registrar uso</button> ` : ""}${podeEditar() ? `<button class="leve" data-ev="${m.id}">Editar</button>` : ""}</td></tr>`; }).join("")}</tbody></table>${usos_30d.length ? `<details style="margin-top:8px"><summary class="mudo" style="cursor:pointer">Usos nos últimos 30 dias (${usos_30d.length})</summary><table><tbody>${usos_30d.map((u) => `<tr><td>${fmtData(u.tomado_em, p.fuso)}</td><td>${esc(medicamentos.find((m) => m.id === u.medicamento_id)?.nome || "?")}</td><td class="mudo">${u.origem === "painel" ? "por " + esc(u.informado_por || "?") : "WhatsApp"}${u.observacao ? " · " + esc(u.observacao) : ""}</td><td class="acoes"><button class="leve perigo" data-deluso="${u.id}">Excluir</button></td></tr>`).join("")}</tbody></table></details>` : ""}` : `<p class="mudo">Nenhum remédio eventual cadastrado.</p>`;
+    area.querySelectorAll("[data-ev]").forEach((b) => b.onclick = () => modalEventual(p, medicamentos.find((m) => m.id === b.dataset.ev)));
+    area.querySelectorAll("[data-usar]").forEach((b) => b.onclick = () => modalUsoEventual(p, medicamentos.find((m) => m.id === b.dataset.usar)));
+    area.querySelectorAll("[data-deluso]").forEach((b) => b.onclick = async () => { if (!confirm("Excluir este registro de uso?")) return; try { await api("uso_eventual_excluir", { id: b.dataset.deluso }); toast("Registro excluído.", "ok"); renderEventuais(p); } catch (e) { toast(e.message, "erro"); } });
+  } catch (e) { area.innerHTML = `<p style="color:var(--red)">Falha ao listar: ${esc(e.message)}</p>`; }
+}
+function modalEventual(p, m) {
+  const { el, fechar } = abrirModal(`
+    <h2>${m ? "Editar" : "Adicionar"} remédio eventual — ${esc(p.nome)}</h2>
+    <div class="linha"><div class="campo"><label>Remédio</label><input id="f-nome" value="${esc(m?.nome)}"></div><div class="campo" style="flex:.5"><label>Dose</label><input id="f-dose" value="${esc(m?.dose)}" placeholder="1g"></div></div>
+    <div class="campo"><label>Indicação (quando usar)</label><input id="f-ind" value="${esc(m?.indicacao)}" placeholder="dor ou febre"></div>
+    <div class="linha"><div class="campo"><label>Intervalo mínimo entre doses (horas)</label><input id="f-int" inputmode="decimal" value="${m?.intervalo_min_h ?? ""}" placeholder="6"></div><div class="campo"><label>Máximo por dia</label><input id="f-max" type="number" value="${m?.max_dia ?? ""}" placeholder="4"></div></div>
+    <div class="campo"><label>Instruções</label><input id="f-inst" value="${esc(m?.instrucoes)}" placeholder="tomar com água, não deitar em seguida"></div>
+    <div class="campo"><label>Prescrito por</label>${medicoSelectHtml("f-medico", m?.medico_id)}</div>
+    <div class="linha"><div class="campo"><label><input type="checkbox" id="f-urg" style="width:auto" ${m?.urgencia ? "checked" : ""}> Urgência (avisa você e o grupo a cada uso)</label></div><div class="campo"><label><input type="checkbox" id="f-ativo" style="width:auto" ${m?.ativo === false ? "" : "checked"}> Ativo</label></div></div>
+    ${m?.criado_por ? `<p class="mudo">Cadastrado por ${esc(m.criado_por)}.</p>` : ""}
+    <div class="pe">${m ? `<button class="perigo esq" id="f-excluir">Excluir</button>` : ""}<button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  ligarAutocomplete($("#f-nome", el), $("#f-dose", el)); medicoSelectLigar(el, "f-medico");
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("eventual_salvar", { id: m?.id, pessoa_id: p.id, nome: $("#f-nome", el).value, dose: $("#f-dose", el).value, indicacao: $("#f-ind", el).value, medico_id: $("#f-medico", el).value, posologia: m?.posologia, receita_id: m?.receita_id, intervalo_min_h: $("#f-int", el).value, max_dia: $("#f-max", el).value, instrucoes: $("#f-inst", el).value, urgencia: $("#f-urg", el).checked, ativo: $("#f-ativo", el).checked }); fechar(); toast("Salvo.", "ok"); renderEventuais(p); });
+  if (m) $("#f-excluir", el).onclick = (e) => { if (!confirm(`Excluir ${m.nome} e todo o histórico de uso dele?`)) return; executar(e.target, async () => { await api("eventual_excluir", { id: m.id }); fechar(); toast("Excluído.", "ok"); renderEventuais(p); }); };
+}
+function modalUsoEventual(p, m) {
+  const agora = new Date(); agora.setSeconds(0, 0);
+  const local = new Date(agora.getTime() - agora.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const { el, fechar } = abrirModal(`
+    <h2>Registrar uso — ${esc(m.nome)}${m.dose ? " " + esc(m.dose) : ""}</h2>
+    <p class="mudo">${esc(m.indicacao)}${m.intervalo_min_h ? ` · mínimo ${String(m.intervalo_min_h).replace(".", ",")}h entre doses` : ""}${m.max_dia ? ` · até ${m.max_dia}/dia` : ""}</p>
+    <div class="linha"><div class="campo"><label>Quando tomou</label><input id="f-quando" type="datetime-local" value="${local}"></div><div class="campo" style="flex:1.4"><label>Observação</label><input id="f-obs" placeholder="dor de cabeça forte"></div></div>
+    <p class="mudo">Será registrado como informado por <b>${esc(estado.usuario?.nome || "?")}</b>.${m.urgencia ? " Por ser urgência, você e o grupo serão avisados." : ""}</p>
+    <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Registrar</button></div>`);
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { const r = await api("uso_eventual_registrar", { medicamento_id: m.id, tomado_em: $("#f-quando", el).value, observacao: $("#f-obs", el).value }); fechar(); if (r.avisos?.length) toast("Registrado, com alerta: " + r.avisos.join(" "), "erro"); else toast("Uso registrado.", "ok"); renderEventuais(p); });
+}
+
+// ======================= glicemia, oxímetro e peso =======================
+const CTX = { jejum: "jejum", pos_refeicao: "pós-refeição", outro: "outro" };
+function modalHorariosSinal(p, tipo, ags) {
+  ags = [...ags].sort((a, b) => a.horario.localeCompare(b.horario));
+  const titulos = { glicemia: "Pedidos de glicemia", oximetria: "Pedidos de oxímetro (SpO₂ e bpm)", peso: "Pedidos de peso" };
+  const { el, fechar } = abrirModal(`
+    <h2>${titulos[tipo]} — ${esc(p.nome)}</h2>
+    <div class="campo"><label>Horários</label>${horariosHtml(ags.map((a) => hh(a.horario)))}</div>
+    ${tipo === "glicemia" ? `<div class="campo"><label>Contexto de cada horário</label><div id="ctx-area"></div></div>` : ""}
+    <div class="campo"><label>Dias</label>${diasHtml(ags[0]?.dias_semana)}</div>
+    <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  horariosLigar(el);
+  const ctxAtual = {}; ags.forEach((a) => ctxAtual[hh(a.horario)] = a.contexto || "outro");
+  const renderCtx = () => { const area = $("#ctx-area", el); if (!area) return; area.innerHTML = horariosLer(el).map((h) => `<div class="linha" style="margin-bottom:6px"><span style="flex:0 0 60px">${h}</span><select data-ctx="${h}">${Object.entries(CTX).map(([v, t]) => `<option value="${v}" ${(ctxAtual[h] || "outro") === v ? "selected" : ""}>${t}</option>`).join("")}</select></div>`).join("") || `<p class="mudo">Adicione horários acima.</p>`; area.querySelectorAll("[data-ctx]").forEach((s) => s.onchange = () => ctxAtual[s.dataset.ctx] = s.value); };
+  if (tipo === "glicemia") { renderCtx(); new MutationObserver(renderCtx).observe($("#horarios", el), { childList: true }); }
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("sinal_horarios_salvar", { pessoa_id: p.id, tipo, horarios: horariosLer(el), dias_semana: diasLer(el), contextos: ctxAtual }); fechar(); toast("Horários salvos.", "ok"); await carregar(); });
+}
+function modalSinal(p, tipo) {
+  const agora = new Date(); agora.setSeconds(0, 0);
+  const local = new Date(agora.getTime() - agora.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  const campos = tipo === "glicemia"
+    ? `<div class="linha"><div class="campo"><label>Glicemia (mg/dL)</label><input id="f-gli" type="number" inputmode="numeric"></div><div class="campo"><label>Contexto</label><select id="f-ctx">${Object.entries(CTX).map(([v, t]) => `<option value="${v}">${t}</option>`).join("")}</select></div></div>`
+    : `<div class="linha"><div class="campo"><label>SpO₂ (%)</label><input id="f-spo2" type="number" inputmode="numeric"></div><div class="campo"><label>Batimentos (bpm)</label><input id="f-bpm" type="number" inputmode="numeric"></div></div>`;
+  const { el, fechar } = abrirModal(`<h2>Lançar ${tipo === "glicemia" ? "glicemia" : "oxímetro"} — ${esc(p.nome)}</h2>${campos}<div class="campo"><label>Quando</label><input id="f-quando" type="datetime-local" value="${local}"></div><p class="mudo">Informado por <b>${esc(estado.usuario?.nome || "?")}</b>.</p><div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("sinal_inserir", { pessoa_id: p.id, tipo, glicemia: $("#f-gli", el)?.value, contexto: $("#f-ctx", el)?.value, spo2: $("#f-spo2", el)?.value, bpm: $("#f-bpm", el)?.value, medido_em: $("#f-quando", el).value }); fechar(); toast("Registrado.", "ok"); await carregar(); });
+}
+function miniGrafico(pontos, cor) { // pontos: [{x: ms, y}]
+  if (pontos.length < 2) return "";
+  const W = 300, H = 60, xs = pontos.map((p) => p.x), ys = pontos.map((p) => p.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const X = (x) => 6 + (x - x0) / Math.max(1, x1 - x0) * (W - 12), Y = (y) => 6 + (y1 - y) / Math.max(0.1, y1 - y0) * (H - 12);
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:60px;margin-top:8px" aria-hidden="true"><polyline points="${pontos.map((p) => `${X(p.x).toFixed(1)},${Y(p.y).toFixed(1)}`).join(" ")}" fill="none" stroke="${cor}" stroke-width="2"/></svg>`;
+}
+
+// ======================= histórico de saúde =======================
+function modalHistorico(p) {
+  const { el, fechar } = abrirModal(`
+    <h2>Histórico de saúde — ${esc(p.nome)}</h2>
+    <p class="mudo">Relato livre, nas palavras do paciente ou do cuidador: doenças, remédios importantes, alergias, cirurgias, limitações do dia a dia.</p>
+    <div class="campo"><textarea id="f-hist" rows="10">${esc(p.historico_saude)}</textarea></div>
+    <div class="pe"><button class="esq" id="f-sugerir" title="Usa as respostas da anamnese">Sugerir com IA a partir da anamnese</button><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  $("#f-sugerir", el).onclick = (e) => executar(e.target, async () => { const a = await api("anamnese_ler", { pessoa_id: p.id }); if (!a.atual) throw new Error("Preencha a anamnese primeiro."); const r = await api("ia_gerar", { tipo: "historico", texto_qa: anamneseTexto(a.atual.respostas) }); $("#f-hist", el).value = r.texto; toast("Sugestão gerada — revise antes de salvar.", "ok"); });
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("historico_salvar", { pessoa_id: p.id, texto: $("#f-hist", el).value }); fechar(); toast("Histórico salvo.", "ok"); await carregar(); });
+}
+
+// ======================= anamnese =======================
+// tipos: sn (sim/não + detalhe), lista (marcar várias + detalhe), escolha, texto, num, data
+const SN = "sn", LI = "lista", ES = "escolha", TX = "texto", NU = "num", DT = "data";
+const ANAMNESE = [
+ { b: "1. Identificação e contexto", qs: [
+  ["q1","Data de nascimento",DT],["q2","Sexo biológico",ES,["feminino","masculino"]],["q3","Ocupação atual ou anterior",TX],
+  ["q4","Com quem mora",ES,["sozinho","com cônjuge","com filhos","com cuidador","instituição"]],["q5","Cuidador principal (nome, parentesco, telefone)",TX],
+  ["q6","Contato de emergência (nome, parentesco, telefone)",TX],["q7","Plano de saúde e número da carteirinha",TX],["q8","Médico(s) assistente(s) e contato",TX],
+  ["q9","Consegue ler rótulos e bulas sem ajuda?",SN]]},
+ { b: "2. Queixa principal e preocupações atuais", qs: [["q10","O que mais preocupa a saúde hoje?",TX],["q11","Algum sintoma apareceu ou piorou nos últimos 3 meses?",SN]]},
+ { b: "3. Doenças diagnosticadas (informe desde quando / controle no detalhe)", qs: [
+  ["q12","Hipertensão arterial",SN],["q13","Diabetes",SN],["q13a","Se diabetes:",LI,["tipo 1","tipo 2","usa insulina","já teve hipoglicemia grave"]],
+  ["q14","Colesterol/triglicerídeos altos",SN],["q15","Doença cardíaca",LI,["infarto","insuficiência cardíaca","angina","arritmia ou fibrilação atrial","válvula cardíaca","marca-passo ou CDI","stent ou ponte de safena"]],
+  ["q16","AVC ou AIT (derrame, isquemia)",SN],["q17","Doença renal crônica",SN],["q17a","Faz diálise?",SN],["q18","Doença do fígado (hepatite, cirrose, esteatose)",SN],
+  ["q19","Doença pulmonar",LI,["asma","DPOC ou enfisema","apneia do sono","usa CPAP","usa oxigênio em casa"]],["q20","Tireoide",ES,["não","hipotireoidismo","hipertireoidismo","nódulo"]],
+  ["q21","Câncer (qual, quando, tratamento atual)",SN],["q22","Epilepsia ou convulsões",SN],["q23","Parkinson",SN],["q24","Demência, Alzheimer ou perda de memória diagnosticada",SN],
+  ["q25","Depressão, ansiedade, bipolar ou outro diagnóstico psiquiátrico",SN],["q26","Osteoporose ou fratura por queda",SN],["q27","Artrite, artrose ou dor articular crônica",SN],["q28","Gota",SN],
+  ["q29","Anemia",SN],["q30","Distúrbio de coagulação (hemofilia, plaquetas baixas, sangramento fácil)",SN],["q31","HIV, hepatite B ou C",SN],["q32","Doença autoimune (lúpus, artrite reumatoide, outras)",SN],
+  ["q33","Glaucoma, catarata ou baixa visão",SN],["q34","Úlcera, gastrite ou refluxo",SN],["q35","Incontinência urinária ou próstata aumentada",SN],["q36","Outras doenças",TX]]},
+ { b: "4. Medicações de risco e alergias", qs: [
+  ["q37","Usa anticoagulante ou antiagregante (varfarina/Marevan, Xarelto, Eliquis, Pradaxa, AAS, clopidogrel)?",SN],["q38","Usa corticoide de uso contínuo?",SN],
+  ["q39","Usa imunossupressor ou faz quimioterapia?",SN],["q40","Usa bifosfonato ou denosumabe (alendronato, ácido zoledrônico, Prolia)?",SN],
+  ["q41","Usa opioide, benzodiazepínico ou remédio para dormir?",SN],["q42","Usa suplementos, chás medicinais ou fitoterápicos?",SN],
+  ["q43","Alergia a medicamentos (qual e que reação)",SN],["q43a","A reação foi grave?",LI,["urticária","inchaço","falta de ar","anafilaxia"]],["q44","Alergia a alimentos",SN],
+  ["q45","Alergia a:",LI,["látex","iodo ou contraste","anestésico local"]],["q46","Já teve reação ou complicação com anestesia?",SN],["q47","Tem dificuldade para tomar os remédios sozinho?",SN]]},
+ { b: "5. Cirurgias, internações e dispositivos", qs: [
+  ["q48","Cirurgias já realizadas (qual e ano)",TX],["q49","Internações nos últimos 2 anos (motivo e data)",SN],["q50","Já recebeu transfusão de sangue? Teve reação?",SN],
+  ["q51","Prótese ou dispositivo no corpo",LI,["válvula cardíaca","prótese de quadril ou joelho","stent","marca-passo ou CDI","bomba de insulina","sonda, cateter ou ostomia","outro"]],
+  ["q52","Usa:",LI,["aparelho auditivo","óculos","dentadura ou prótese dentária"]]]},
+ { b: "6. Histórico familiar (pais, irmãos, filhos)", qs: [
+  ["q53","Infarto ou morte súbita antes dos 60 anos (quem)",SN],["q54","AVC (quem)",SN],["q55","Diabetes (quem)",SN],["q56","Hipertensão",SN],["q57","Câncer (tipo e quem)",SN],
+  ["q58","Doença renal",SN],["q59","Alzheimer ou demência",SN],["q60","Doença hereditária conhecida",SN]]},
+ { b: "7. Hábitos de vida", qs: [
+  ["q61","Tabagismo",ES,["nunca","ex-fumante","fuma"]],["q61a","Se fuma ou fumou: quantos por dia, por quantos anos, parou há quanto tempo?",TX],
+  ["q62","Bebida alcoólica",ES,["não","socialmente","semanalmente","diariamente"]],["q63","Outras substâncias",SN],
+  ["q64","Atividade física",ES,["nenhuma","leve (caminhadas)","regular (3x/semana ou mais)"]],["q65","Alimentação",LI,["muito sal","muito açúcar","dieta restrita","dificuldade para mastigar ou engolir"]],
+  ["q66","Sono: horas por noite; insônia? ronca ou para de respirar dormindo?",TX],["q67","Cafeína (xícaras de café/dia)",NU],["q68","Água habitual (copos/dia)",NU]]},
+ { b: "8. Revisão por sistemas — nos últimos 3 meses teve:", qs: [
+  ["q69","Dor ou aperto no peito",SN],["q70","Falta de ar em repouso ou ao deitar",SN],["q71","Palpitações ou coração acelerado",SN],["q72","Inchaço nas pernas ou pés",SN],
+  ["q73","Tontura, desmaio ou quase desmaio",SN],["q74","Dor de cabeça frequente ou muito forte",SN],["q75","Alteração súbita da visão, fala ou força em um lado do corpo",SN],
+  ["q76","Perda auditiva ou zumbido",SN],["q77","Tosse persistente ou catarro com sangue",SN],["q78","Sangramento fácil, hematomas sem causa, sangue nas fezes ou urina",SN],
+  ["q79","Sede excessiva, urina em excesso, fome exagerada",SN],["q80","Perda ou ganho de peso sem querer (mais de 5 kg)",SN],["q81","Alteração do intestino (diarreia, prisão de ventre persistente)",SN],
+  ["q82","Azia, refluxo, dor de estômago",SN],["q83","Dificuldade para engolir",SN],["q84","Dor articular, dor lombar, fraqueza muscular",SN],["q85","Formigamento ou dormência",SN],
+  ["q86","Esquecimento que atrapalha o dia a dia",SN],["q87","Tristeza persistente, desânimo, ansiedade ou pensamentos de não querer viver",SN],
+  ["q88","Feridas que não cicatrizam, manchas novas na pele",SN],["q89","Febre recorrente ou infecções frequentes",SN],["q90","Dor de dente, sangramento na gengiva, boca seca, feridas na boca",SN]]},
+ { b: "9. Funcionalidade e segurança em casa", qs: [
+  ["q91","Caminha",ES,["sem apoio","com bengala","com andador","cadeira de rodas"]],["q92","Quedas nos últimos 12 meses (quantas; alguma com fratura ou hospital?)",NU],["q92a","Alguma queda com fratura ou ida ao hospital?",SN],
+  ["q93","Consegue tomar banho, se vestir e comer sozinho?",SN],["q94","Consegue preparar refeições, cuidar do dinheiro e dos remédios sozinho?",SN],
+  ["q95","Em casa há:",LI,["escadas","tapetes soltos","banheiro sem barra de apoio"]],["q96","Sai de casa sozinho?",SN],["q96a","Dirige?",SN],["q97","Tem com quem contar numa emergência 24h?",SN]]},
+ { b: "10. Saúde da mulher (quando aplicável)", qs: [
+  ["q98","Gestação",ES,["não se aplica","não","pode estar grávida","grávida","amamentando"]],["q99","Menopausa; usa reposição hormonal?",SN],["q100","Último preventivo e última mamografia",TX]]},
+ { b: "11. Vacinas e exames de rotina", qs: [
+  ["q101","Vacinas em dia (marque; informe o ano no detalhe)",LI,["gripe","COVID-19","pneumocócica","tétano (dT)","herpes-zóster","hepatite B"]],
+  ["q102","Exames recentes (data e resultado, se souber): glicemia/HbA1c, colesterol, creatinina, hemograma, colonoscopia, densitometria, ecocardiograma…",TX]]},
+ { b: "12. Diretivas e preferências", qs: [
+  ["q103","Quem deve ser consultado para decisões de saúde se a pessoa não puder decidir?",TX],["q104","Existe documento de diretivas antecipadas de vontade?",SN],
+  ["q105","Restrições religiosas ou culturais relevantes ao tratamento (ex.: transfusão)",TX],["q106","Observações finais",TX]]},
+];
+const anSim = (r, id) => r[id]?.v === "sim";
+const anDet = (r, id) => (r[id]?.d || "").trim();
+const anSel = (r, id, op) => Array.isArray(r[id]?.sel) && r[id].sel.includes(op);
+function anamneseAlertas(r) {
+  const a = [];
+  if (r.q4 === "sozinho") a.push("Mora sozinho");
+  if (anSim(r, "q13")) a.push("Diabetes" + (anSel(r, "q13a", "usa insulina") ? " — usa insulina" : "") + (anSel(r, "q13a", "já teve hipoglicemia grave") ? " (hipoglicemia grave prévia)" : ""));
+  const card = (r.q15?.sel || []); if (card.length) a.push("Cardiopatia: " + card.join(", "));
+  if (anSim(r, "q16")) a.push("AVC/AIT prévio");
+  if (anSim(r, "q17")) a.push("Doença renal crônica" + (anSim(r, "q17a") ? " — diálise" : ""));
+  if (anSel(r, "q19", "DPOC ou enfisema")) a.push("DPOC"); if (anSel(r, "q19", "usa oxigênio em casa")) a.push("Oxigênio domiciliar");
+  if (anSim(r, "q21")) a.push("Câncer" + (anDet(r, "q21") ? ": " + anDet(r, "q21") : ""));
+  if (anSim(r, "q22")) a.push("Epilepsia/convulsões"); if (anSim(r, "q24")) a.push("Demência/perda de memória");
+  if (anSim(r, "q30")) a.push("Distúrbio de coagulação");
+  if (anSim(r, "q37")) a.push("Anticoagulante/antiagregante" + (anDet(r, "q37") ? ": " + anDet(r, "q37") : ""));
+  if (anSim(r, "q39")) a.push("Imunossuprimido"); if (anSim(r, "q40")) a.push("Bifosfonato/denosumabe (risco de osteonecrose)");
+  if (anSim(r, "q43")) a.push("Alergia a medicamento" + (anDet(r, "q43") ? ": " + anDet(r, "q43") : "") + (anSel(r, "q43a", "anafilaxia") ? " — ANAFILAXIA" : ""));
+  (r.q45?.sel || []).forEach((x) => a.push("Alergia a " + x));
+  if (anSim(r, "q46")) a.push("Complicação prévia com anestesia");
+  if (anSel(r, "q51", "válvula cardíaca")) a.push("Válvula cardíaca"); if (anSel(r, "q51", "marca-passo ou CDI") || card.includes("marca-passo ou CDI")) a.push("Marca-passo/CDI");
+  if (r.q61 === "fuma") a.push("Tabagista"); if (r.q62 === "diariamente") a.push("Álcool diário");
+  if (anSel(r, "q65", "dificuldade para mastigar ou engolir") || anSim(r, "q83")) a.push("Disfagia / dificuldade para engolir");
+  ["q69:Dor no peito", "q70:Falta de ar", "q73:Tontura/desmaio", "q75:Sinais neurológicos súbitos", "q78:Sangramento", "q80:Perda/ganho de peso"].forEach((s) => { const [id, t] = s.split(":"); if (anSim(r, id)) a.push(t + " (últimos 3 meses)"); });
+  if (anSim(r, "q87")) a.push("Humor deprimido / ideação — avaliar");
+  const q = Number(r.q92); if (q > 0) a.push(`Quedas: ${q} no último ano` + (anSim(r, "q92a") ? " (com fratura/hospital)" : ""));
+  if (["pode estar grávida", "grávida"].includes(r.q98)) a.push("Gestante/possível gestação");
+  return [...new Set(a)];
+}
+function respostaTexto(q, v) {
+  if (v == null || v === "") return "";
+  const t = q[2];
+  if (t === SN) return v.v ? (v.v === "sim" ? "Sim" : "Não") + (v.d ? ` — ${v.d}` : "") : "";
+  if (t === LI) return (v.sel || []).length || v.d ? (v.sel || []).join(", ") + (v.d ? ` — ${v.d}` : "") : "";
+  return String(v);
+}
+function anamneseTexto(r) { return ANAMNESE.map((b) => { const ls = b.qs.map((q) => { const t = respostaTexto(q, r[q[0]]); return t ? `- ${q[1]}: ${t}` : ""; }).filter(Boolean); return ls.length ? `## ${b.b}\n${ls.join("\n")}` : ""; }).filter(Boolean).join("\n\n"); }
+function anamneseResumoAuto(r) {
+  const partes = [];
+  const idade = r.q1 ? Math.floor((Date.now() - new Date(r.q1).getTime()) / 31557600000) : null;
+  partes.push([r.q2 === "feminino" ? "Mulher" : r.q2 === "masculino" ? "Homem" : "Paciente", idade ? `${idade} anos` : null, r.q4 ? `mora ${r.q4}` : null, r.q3 ? `(${r.q3})` : null].filter(Boolean).join(", ") + ".");
+  const bloco = (b, rotulo) => { const itens = ANAMNESE[b].qs.map((q) => { const v = r[q[0]]; if (q[2] === SN && v?.v === "sim") return q[1].split(" (")[0] + (v.d ? ` (${v.d})` : ""); if (q[2] === LI && v?.sel?.length) return `${q[1].replace(/:$/, "")}: ${v.sel.join(", ")}`; if (q[2] === ES && v && !["não", "nunca", "nenhuma", "não se aplica", "sem apoio"].includes(v)) return `${q[1]}: ${v}`; if ((q[2] === TX) && v && b !== 0) return `${q[1].split(" (")[0]}: ${v}`; return null; }).filter(Boolean); if (itens.length) partes.push(`${rotulo}: ${itens.join("; ")}.`); };
+  bloco(2, "Diagnósticos"); bloco(3, "Medicações de risco e alergias"); bloco(4, "Cirurgias, internações e dispositivos"); bloco(5, "História familiar"); bloco(6, "Hábitos"); bloco(7, "Sintomas nos últimos 3 meses"); bloco(8, "Funcionalidade"); bloco(9, "Saúde da mulher"); bloco(11, "Diretivas");
+  if (r.q10) partes.push(`Preocupação principal: ${r.q10}.`);
+  const al = anamneseAlertas(r); if (al.length) partes.push(`Pontos de atenção: ${al.join("; ")}.`);
+  return partes.join("\n");
+}
+function modalAnamnese(p) {
+  const { el, fechar } = abrirModal(`<h2>Anamnese — ${esc(p.nome)}</h2><p class="mudo">Carregando…</p><div class="pe"><button data-fechar>Fechar</button></div>`, true);
+  (async () => {
+    let dados; try { dados = await api("anamnese_ler", { pessoa_id: p.id }); } catch (e) { el.querySelector("p").textContent = "Falha: " + e.message; return; }
+    let atual = dados.atual; let r = atual ? { ...atual.respostas } : {};
+    const campo = (q) => {
+      const [id, txt, tipo, ops] = q; const v = r[id];
+      const det = (val) => `<input data-q="${id}" data-k="d" placeholder="detalhe" value="${esc(val)}" style="margin-top:4px">`;
+      if (tipo === SN) return `<div class="campo"><label>${esc(txt)}</label><div style="display:flex;gap:12px;align-items:center"><label style="margin:0"><input type="radio" name="${id}" value="sim" data-q="${id}" data-k="v" style="width:auto" ${v?.v === "sim" ? "checked" : ""}> Sim</label><label style="margin:0"><input type="radio" name="${id}" value="nao" data-q="${id}" data-k="v" style="width:auto" ${v?.v === "nao" ? "checked" : ""}> Não</label></div>${det(v?.d)}</div>`;
+      if (tipo === LI) return `<div class="campo"><label>${esc(txt)}</label><div class="dias">${ops.map((o) => `<label><input type="checkbox" data-q="${id}" data-k="sel" value="${esc(o)}" ${v?.sel?.includes(o) ? "checked" : ""}>${esc(o)}</label>`).join("")}</div>${det(v?.d)}</div>`;
+      if (tipo === ES) return `<div class="campo"><label>${esc(txt)}</label><select data-q="${id}" data-k="x"><option value="">—</option>${ops.map((o) => `<option ${v === o ? "selected" : ""}>${esc(o)}</option>`).join("")}</select></div>`;
+      if (tipo === TX) return `<div class="campo"><label>${esc(txt)}</label><textarea data-q="${id}" data-k="x" rows="2">${esc(v)}</textarea></div>`;
+      return `<div class="campo"><label>${esc(txt)}</label><input data-q="${id}" data-k="x" type="${tipo === DT ? "date" : "number"}" value="${esc(v)}"></div>`;
+    };
+    const cab = () => `<div class="nao-imprimir" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px"><span class="mudo">${atual ? `Versão ${atual.versao}${atual.concluida ? " · concluída" : " · em preenchimento"} · ${esc(atual.preenchido_por || "")} · ${fmtData(atual.atualizado_em, p.fuso)}` : "Nova anamnese"}</span>${dados.versoes.length > 1 ? `<select id="an-ver" style="width:auto">${dados.versoes.map((v) => `<option value="${v.id}" ${v.id === atual?.id ? "selected" : ""}>versão ${v.versao}</option>`).join("")}</select>` : ""}<span style="margin-left:auto"></span><button id="an-imprimir">Imprimir ficha</button>${atual ? `<button id="an-nova">Nova versão</button>` : ""}<button class="primario" id="an-salvar">Salvar</button><button class="primario" id="an-concluir">Salvar e concluir</button></div>`;
+    const render = () => {
+      el.querySelector(".modal").innerHTML = `<h2>Anamnese — ${esc(p.nome)}</h2>${cab()}
+        <div id="an-alertas"></div>
+        ${ANAMNESE.map((b, i) => `<details ${i === 0 ? "open" : ""} style="border:1px solid var(--line);border-radius:8px;padding:8px 14px;margin-bottom:8px"><summary style="cursor:pointer;font-weight:600">${esc(b.b)}</summary><div style="margin-top:10px">${b.qs.map(campo).join("")}</div></details>`).join("")}
+        <details style="border:1px solid var(--line);border-radius:8px;padding:8px 14px;margin-bottom:8px" open><summary style="cursor:pointer;font-weight:600">Resumo</summary>
+          <div style="margin-top:10px"><label>Resumo estruturado (automático)</label><pre id="an-resumo" style="white-space:pre-wrap;font:inherit;background:var(--bg);padding:10px;border-radius:8px;margin:0 0 12px"></pre>
+          <label>Resumo clínico com IA <span class="mudo">(revise antes de salvar)</span></label><textarea id="an-ia" rows="8">${esc(atual?.resumo_ia)}</textarea>
+          <div class="nao-imprimir" style="display:flex;gap:8px;margin-top:8px"><button id="an-gerar-ia">Gerar com IA</button><button id="an-salvar-ia" ${atual ? "" : "disabled"}>Salvar resumo IA</button></div></div></details>
+        <div class="pe nao-imprimir"><button data-fechar>Fechar</button></div>`;
+      el.querySelectorAll("[data-fechar]").forEach((b) => b.onclick = fechar);
+      const atualizar = () => { const al = anamneseAlertas(r), co = anamneseComorbidades(r); $("#an-alertas", el).innerHTML = (co.length ? `<div style="background:var(--red-soft);border-radius:8px;padding:8px 12px;margin-bottom:8px"><b style="color:var(--red)">Comorbidades:</b> ${co.map(esc).join(" · ")}</div>` : "") + (al.length ? `<div style="background:var(--amber-soft);border-radius:8px;padding:8px 12px;margin-bottom:12px"><b style="color:var(--amber)">Alertas clínicos:</b> ${al.map(esc).join(" · ")}</div>` : ""); $("#an-resumo", el).textContent = anamneseResumoAuto(r); };
+      el.querySelectorAll("[data-q]").forEach((i) => i.addEventListener("input", () => { const id = i.dataset.q, k = i.dataset.k; if (k === "x") r[id] = i.value; else if (k === "v") r[id] = { ...(r[id] || {}), v: i.value }; else if (k === "d") r[id] = { ...(r[id] || {}), d: i.value }; else if (k === "sel") { const sel = [...el.querySelectorAll(`[data-q="${id}"][data-k="sel"]:checked`)].map((c) => c.value); r[id] = { ...(r[id] || {}), sel }; } atualizar(); }));
+      atualizar();
+      const salvar = async (btn, concluida, nova) => executar(btn, async () => { atual = await api("anamnese_salvar", { id: atual?.id, pessoa_id: p.id, respostas: r, concluida, nova_versao: nova, resumo_auto: anamneseResumoAuto(r), alertas: anamneseAlertas(r), comorbidades: anamneseComorbidades(r) }); dados = await api("anamnese_ler", { pessoa_id: p.id }); toast("Anamnese salva.", "ok"); render(); try { estado.visao = await api("visao_geral"); } catch {} });
+      $("#an-salvar", el).onclick = (e) => salvar(e.target, false, false);
+      $("#an-concluir", el).onclick = (e) => salvar(e.target, true, false);
+      const bn = $("#an-nova", el); if (bn) bn.onclick = (e) => { if (!confirm("Criar uma nova versão a partir desta? A atual fica guardada no histórico.")) return; salvar(e.target, false, true); };
+      const sv = $("#an-ver", el); if (sv) sv.onchange = async () => { try { atual = await api("anamnese_versao_ler", { id: sv.value }); r = { ...atual.respostas }; render(); } catch (e) { toast(e.message, "erro"); } };
+      $("#an-imprimir", el).onclick = () => window.print();
+      $("#an-gerar-ia", el).onclick = (e) => executar(e.target, async () => { const out = await api("ia_gerar", { tipo: "resumo", texto_qa: anamneseTexto(r) }); $("#an-ia", el).value = out.texto; toast("Resumo gerado — revise e salve.", "ok"); });
+      $("#an-salvar-ia", el).onclick = (e) => executar(e.target, async () => { if (!atual) throw new Error("Salve a anamnese primeiro."); await api("anamnese_resumo_ia_salvar", { id: atual.id, texto: $("#an-ia", el).value }); toast("Resumo IA salvo.", "ok"); });
+    };
+    render();
+  })();
+}
+async function carregarAnamneseCab(p) {
+  const area = $("#alertas-area"); if (!area) return;
+  try { const a = await api("anamnese_ler", { pessoa_id: p.id }); const al = a.atual?.alertas || []; area.innerHTML = al.length ? `<div style="background:var(--red-soft);border-radius:8px;padding:6px 12px;margin-bottom:14px;font-size:14px"><b style="color:var(--red)">Alertas clínicos:</b> ${al.map(esc).join(" · ")}</div>` : (a.atual ? "" : `<p class="mudo" style="margin:0 0 14px">Anamnese ainda não preenchida.</p>`); } catch { area.innerHTML = ""; }
+}
+
+// ======================= usuários (configurações) =======================
+async function renderUsuarios(el) {
+  const area = $("#usr-area", el); if (!area) return;
+  try {
+    const lista = await api("usuarios_listar");
+    area.innerHTML = (lista.length ? `<table><thead><tr><th>Nome</th><th>Papel</th><th></th></tr></thead><tbody>${lista.map((u) => `<tr><td>${esc(u.nome)}${u.login ? `<div class="mudo">@${esc(u.login)}</div>` : ""}${u.email ? `<div class="mudo">${esc(u.email)}</div>` : ""}${u.ativo ? "" : ' <span class="chip off">inativo</span>'}</td><td class="mudo">${u.papel}${u.relacao ? " · " + esc(u.relacao) : ""}${u.papel !== "admin" ? `<div>${(u.pessoa_ids || []).map((id) => esc(estado.pessoas.find((p) => p.id === id)?.nome || "?")).join(", ") || "sem vínculo"}</div>` : ""}</td><td class="acoes"><button class="leve" data-usr="${u.id}">Editar</button></td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhum cuidador cadastrado. Você entra com a senha de administrador.</p>`) + `<button id="usr-novo" style="margin-top:8px">Adicionar usuário</button>`;
+    $("#usr-novo", area).onclick = () => modalUsuario(null, () => renderUsuarios(el));
+    area.querySelectorAll("[data-usr]").forEach((b) => b.onclick = () => modalUsuario(lista.find((u) => u.id === b.dataset.usr), () => renderUsuarios(el)));
+  } catch (e) { area.innerHTML = `<p class="mudo">${esc(e.message)}</p>`; }
+}
+function modalUsuario(u, depois, pre = {}) {
+  const papelIni = u?.papel || pre.papel || "cuidador";
+  const vinc = new Set(u?.pessoa_ids || pre.pessoa_ids || []);
+  const { el, fechar } = abrirModal(`
+    <h2>${u ? "Editar" : "Novo"} usuário</h2>
+    <div class="linha"><div class="campo"><label>Nome (aparece nos registros)</label><input id="f-nome" value="${esc(u?.nome || pre.nome)}"></div><div class="campo" style="flex:.6"><label>Perfil</label><select id="f-papel"><option value="paciente" ${papelIni === "paciente" ? "selected" : ""}>Paciente (vê só a própria ficha)</option><option value="cuidador" ${papelIni === "cuidador" ? "selected" : ""}>Cuidador</option><option value="medico" ${papelIni === "medico" ? "selected" : ""}>Médico</option><option value="admin" ${papelIni === "admin" ? "selected" : ""}>Administrador (vê todos)</option></select></div></div>
+    <div class="linha"><div class="campo"><label>Usuário (para entrar no painel)</label><input id="f-login" value="${esc(u?.login)}" autocomplete="off" placeholder="maria.wilma"></div><div class="campo"><label>E-mail (recupera a senha)</label><input id="f-email" type="email" value="${esc(u?.email)}" autocomplete="off" placeholder="maria@gmail.com"></div></div>
+    <div class="campo" id="f-rel-campo"><label>Relação com o paciente (Filho(a), Cônjuge, Cuidador(a) profissional…)</label><input id="f-rel" value="${esc(u?.relacao)}" placeholder="Filho(a)"></div>
+    <div class="campo" id="f-vinc-area"><label>Pacientes que este usuário pode ver</label><div class="dias">${estado.pessoas.map((p) => `<label><input type="checkbox" data-vinc="${p.id}" ${vinc.has(p.id) ? "checked" : ""}>${esc(p.nome)}</label>`).join("") || '<span class="mudo">Nenhum paciente cadastrado ainda.</span>'}</div></div>
+    <div class="campo"><label>${u ? "Nova senha (deixe em branco para manter)" : "Senha (mínimo 6 caracteres)"}</label><input id="f-senha" type="text" autocomplete="off"></div>
+    ${u ? `<div class="campo"><label><input type="checkbox" id="f-ativo" style="width:auto" ${u.ativo ? "checked" : ""}> Ativo</label></div>` : ""}
+    <div class="pe">${u ? `<button class="perigo esq" id="f-excluir">Excluir</button>` : ""}<button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  $("#f-nome", el).addEventListener("blur", () => { if (!$("#f-login", el).value) $("#f-login", el).value = sugestaoLogin($("#f-nome", el).value); });
+  if (!u && pre.nome && !$("#f-login", el).value) $("#f-login", el).value = sugestaoLogin(pre.nome);
+  const ajustarVinc = () => { const pp = $("#f-papel", el).value; $("#f-vinc-area", el).style.display = pp === "admin" ? "none" : ""; $("#f-rel-campo", el).style.display = pp === "cuidador" ? "" : "none"; if (pp === "paciente") { const marcados = [...el.querySelectorAll("[data-vinc]:checked")]; marcados.slice(1).forEach((c) => c.checked = false); } };
+  $("#f-papel", el).onchange = ajustarVinc; ajustarVinc();
+  el.querySelectorAll("[data-vinc]").forEach((c) => c.onchange = () => { if ($("#f-papel", el).value === "paciente" && c.checked) el.querySelectorAll("[data-vinc]").forEach((o) => { if (o !== c) o.checked = false; }); });
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("usuario_salvar", { id: u?.id, nome: $("#f-nome", el).value, login: $("#f-login", el).value, email: $("#f-email", el).value, relacao: $("#f-rel", el).value, papel: $("#f-papel", el).value, senha_nova: $("#f-senha", el).value, ativo: u ? $("#f-ativo", el).checked : true, pessoa_ids: [...el.querySelectorAll("[data-vinc]:checked")].map((c) => c.dataset.vinc) }); fechar(); toast("Usuário salvo.", "ok"); depois(); });
+  if (u) $("#f-excluir", el).onclick = (e) => { if (!confirm(`Excluir ${u.nome}? Os registros feitos por ele continuam com o nome.`)) return; executar(e.target, async () => { await api("usuario_excluir", { id: u.id }); fechar(); toast("Usuário excluído.", "ok"); depois(); }); };
+}
+
+// Lista de remédios para o autocomplete: [nome, "doses comuns separadas por |"]
+const REMEDIOS = [
+["AAS (ácido acetilsalicílico)","100 mg|81 mg|500 mg"],["Aspirina Prevent","100 mg"],["Abacavir","300 mg"],["Aciclovir","200 mg|400 mg|800 mg"],["Ácido fólico","5 mg|0,4 mg"],["Ácido valproico / Valproato","250 mg|500 mg"],["Ácido zoledrônico","5 mg/100 ml"],["Alendronato de sódio","70 mg|10 mg"],["Alopurinol","100 mg|300 mg"],["Alprazolam","0,25 mg|0,5 mg|1 mg|2 mg"],["Ambroxol","30 mg/5 ml|6 mg/ml"],["Amiodarona","100 mg|200 mg"],["Amitriptilina","25 mg|75 mg"],["Amoxicilina","500 mg|875 mg|250 mg/5 ml"],["Amoxicilina + clavulanato","875/125 mg|500/125 mg|400/57 mg/5 ml"],["Anlodipino","2,5 mg|5 mg|10 mg"],["Apixabana (Eliquis)","2,5 mg|5 mg"],["Aripiprazol","5 mg|10 mg|15 mg|30 mg"],["Atenolol","25 mg|50 mg|100 mg"],["Atorvastatina","10 mg|20 mg|40 mg|80 mg"],["Azitromicina","500 mg|200 mg/5 ml"],["Baclofeno","10 mg"],["Benzilpenicilina benzatina (Benzetacil)","1.200.000 UI|600.000 UI"],["Betametasona","0,5 mg|2 mg"],["Bisoprolol","1,25 mg|2,5 mg|5 mg|10 mg"],["Bromazepam","3 mg|6 mg"],["Bromoprida","10 mg|4 mg/ml"],["Budesonida","200 mcg|400 mcg|32 mcg|50 mcg"],["Budesonida + formoterol","200/6 mcg|400/12 mcg"],["Bupropiona","150 mg|300 mg"],["Buscopan (butilbrometo de escopolamina)","10 mg"],["Buscopan composto","10 mg + 250 mg"],["Cabergolina","0,5 mg"],["Captopril","25 mg|50 mg"],["Carbamazepina","200 mg|400 mg"],["Carbonato de cálcio","500 mg|600 mg|1.250 mg"],["Carbonato de cálcio + vitamina D","500 mg + 400 UI|600 mg + 400 UI"],["Carbonato de lítio","300 mg|450 mg"],["Carvedilol","3,125 mg|6,25 mg|12,5 mg|25 mg"],["Cefalexina","500 mg|1 g|250 mg/5 ml"],["Ceftriaxona","1 g"],["Cetoconazol","200 mg"],["Cetoprofeno","100 mg|150 mg"],["Cianocobalamina (vitamina B12)","5.000 mcg|1.000 mcg"],["Cilostazol","50 mg|100 mg"],["Ciprofloxacino","500 mg|250 mg"],["Citalopram","20 mg|40 mg"],["Claritromicina","500 mg|250 mg"],["Clonazepam (Rivotril)","0,5 mg|2 mg|2,5 mg/ml"],["Clonidina","0,100 mg|0,150 mg|0,200 mg"],["Clopidogrel","75 mg"],["Cloreto de potássio","600 mg|6%"],["Clorpromazina","25 mg|100 mg"],["Clortalidona","12,5 mg|25 mg|50 mg"],["Codeína + paracetamol","30/500 mg|7,5/500 mg"],["Colchicina","0,5 mg"],["Dabigatrana (Pradaxa)","110 mg|150 mg"],["Dapagliflozina (Forxiga)","10 mg"],["Dapagliflozina + metformina (Xigduo XR)","10/1.000 mg|5/1.000 mg"],["Dexametasona","0,5 mg|4 mg"],["Dexclorfeniramina","2 mg|0,4 mg/ml"],["Diazepam","5 mg|10 mg"],["Diclofenaco","50 mg|75 mg|100 mg"],["Digoxina","0,25 mg"],["Diltiazem","30 mg|60 mg|90 mg|120 mg"],["Dimenidrinato + piridoxina (Dramin B6)","50/10 mg"],["Dipirona","500 mg|1 g|500 mg/ml"],["Domperidona","10 mg"],["Donepezila","5 mg|10 mg"],["Doxazosina","2 mg|4 mg"],["Doxiciclina","100 mg"],["Dulaglutida (Trulicity)","0,75 mg|1,5 mg"],["Duloxetina","30 mg|60 mg"],["Empagliflozina (Jardiance)","10 mg|25 mg"],["Enalapril","5 mg|10 mg|20 mg"],["Enoxaparina","40 mg|60 mg|80 mg"],["Escitalopram","10 mg|15 mg|20 mg"],["Esomeprazol","20 mg|40 mg"],["Espironolactona","25 mg|50 mg|100 mg"],["Estradiol","1 mg|2 mg"],["Ezetimiba","10 mg"],["Fenitoína","100 mg"],["Fenobarbital","100 mg|40 mg/ml"],["Fenoterol (Berotec)","100 mcg|5 mg/ml"],["Finasterida","1 mg|5 mg"],["Fluconazol","150 mg"],["Fluoxetina","20 mg"],["Formoterol","12 mcg"],["Furosemida","40 mg"],["Gabapentina","300 mg|400 mg|600 mg"],["Glibenclamida","5 mg"],["Gliclazida","30 mg|60 mg"],["Glimepirida","1 mg|2 mg|4 mg"],["Haloperidol","1 mg|5 mg|2 mg/ml"],["Hidralazina","25 mg|50 mg"],["Hidroclorotiazida","12,5 mg|25 mg|50 mg"],["Hidroxicloroquina","400 mg"],["Hidróxido de alumínio","61,5 mg/ml"],["Ibuprofeno","400 mg|600 mg|50 mg/ml"],["Indapamida","1,5 mg|2,5 mg"],["Insulina NPH","100 UI/ml"],["Insulina regular","100 UI/ml"],["Insulina glargina (Lantus / Basaglar)","100 UI/ml"],["Insulina degludeca (Tresiba)","100 UI/ml"],["Insulina lispro (Humalog)","100 UI/ml"],["Insulina asparte (NovoRapid)","100 UI/ml"],["Isossorbida (Isordil)","5 mg SL|10 mg|20 mg|40 mg"],["Isotretinoína","10 mg|20 mg"],["Itraconazol","100 mg"],["Ivermectina","6 mg"],["Lactulose","667 mg/ml"],["Lamotrigina","25 mg|50 mg|100 mg"],["Lansoprazol","15 mg|30 mg"],["Levodopa + benserazida (Prolopa)","100/25 mg|200/50 mg"],["Levodopa + carbidopa","250/25 mg|100/25 mg"],["Levofloxacino","500 mg|750 mg"],["Levotiroxina (Puran T4 / Synthroid)","25 mcg|50 mcg|75 mcg|88 mcg|100 mcg|112 mcg|125 mcg|150 mcg"],["Linagliptina (Trayenta)","5 mg"],["Liraglutida (Victoza / Saxenda)","6 mg/ml"],["Lisinopril","5 mg|10 mg|20 mg"],["Loratadina","10 mg|1 mg/ml"],["Lorazepam","1 mg|2 mg"],["Losartana potássica","25 mg|50 mg|100 mg"],["Losartana + hidroclorotiazida","50/12,5 mg|100/25 mg"],["Meloxicam","7,5 mg|15 mg"],["Memantina","10 mg"],["Metformina","500 mg|850 mg|1 g"],["Metformina XR (liberação prolongada)","500 mg|750 mg|1 g"],["Metildopa","250 mg|500 mg"],["Metilfenidato (Ritalina)","10 mg|20 mg LA|30 mg LA"],["Metoclopramida","10 mg|4 mg/ml"],["Metoprolol","25 mg|50 mg|100 mg"],["Metotrexato","2,5 mg"],["Metronidazol","250 mg|400 mg"],["Mirtazapina","15 mg|30 mg"],["Montelucaste","4 mg|5 mg|10 mg"],["Morfina","10 mg|30 mg|10 mg/ml"],["Naproxeno","250 mg|500 mg"],["Nebivolol","5 mg"],["Nifedipino","10 mg|20 mg|30 mg retard"],["Nimesulida","100 mg"],["Nistatina","100.000 UI/ml"],["Nitrofurantoína","100 mg"],["Nortriptilina","10 mg|25 mg|50 mg"],["Olanzapina","5 mg|10 mg"],["Olmesartana","20 mg|40 mg"],["Omeprazol","20 mg|40 mg"],["Ondansetrona","4 mg|8 mg"],["Oxcarbazepina","300 mg|600 mg"],["Pantoprazol","20 mg|40 mg"],["Paracetamol","500 mg|750 mg|200 mg/ml"],["Paroxetina","20 mg|25 mg CR"],["Pentoxifilina","400 mg"],["Pioglitazona","15 mg|30 mg"],["Pramipexol","0,125 mg|0,25 mg|1 mg"],["Pravastatina","10 mg|20 mg|40 mg"],["Prednisolona","5 mg|20 mg|3 mg/ml"],["Prednisona","5 mg|20 mg"],["Pregabalina","75 mg|150 mg"],["Prometazina","25 mg"],["Propafenona","150 mg|300 mg"],["Propranolol","10 mg|40 mg|80 mg"],["Quetiapina","25 mg|100 mg|200 mg|300 mg"],["Ramipril","2,5 mg|5 mg|10 mg"],["Ranitidina","150 mg|300 mg"],["Risperidona","1 mg|2 mg|3 mg"],["Rivaroxabana (Xarelto)","10 mg|15 mg|20 mg"],["Rosuvastatina","5 mg|10 mg|20 mg|40 mg"],["Salbutamol (Aerolin)","100 mcg|2 mg/5 ml"],["Salmeterol + fluticasona (Seretide)","25/125 mcg|25/250 mcg|50/500 mcg"],["Semaglutida (Ozempic / Wegovy)","0,25 mg|0,5 mg|1 mg|2 mg|2,4 mg"],["Semaglutida oral (Rybelsus)","3 mg|7 mg|14 mg"],["Sertralina","50 mg|100 mg"],["Sildenafila","25 mg|50 mg|100 mg"],["Sinvastatina","10 mg|20 mg|40 mg"],["Sitagliptina (Januvia)","50 mg|100 mg"],["Sitagliptina + metformina (Janumet)","50/850 mg|50/1.000 mg"],["Sulfato ferroso","40 mg|25 mg/ml"],["Sulfametoxazol + trimetoprima (Bactrim)","400/80 mg|800/160 mg"],["Tadalafila","5 mg|20 mg"],["Tamsulosina","0,4 mg"],["Telmisartana","40 mg|80 mg"],["Tenoxicam","20 mg"],["Tiamina (vitamina B1)","300 mg"],["Tiotrópio (Spiriva)","2,5 mcg|18 mcg"],["Topiramato","25 mg|50 mg|100 mg"],["Tramadol","50 mg|100 mg"],["Tramadol + paracetamol","37,5/325 mg"],["Trazodona","50 mg|100 mg|150 mg"],["Valsartana","80 mg|160 mg|320 mg"],["Valsartana + hidroclorotiazida","160/12,5 mg|160/25 mg"],["Varfarina (Marevan)","1 mg|2,5 mg|5 mg"],["Venlafaxina","37,5 mg|75 mg|150 mg"],["Verapamil","80 mg|120 mg|240 mg"],["Vildagliptina (Galvus)","50 mg"],["Vildagliptina + metformina (Galvus Met)","50/850 mg|50/1.000 mg"],["Vitamina D (colecalciferol)","1.000 UI|2.000 UI|7.000 UI|50.000 UI"],["Zolpidem","5 mg|10 mg"],
+];
+
+// ======================= autocomplete de remédios =======================
+function normalizar(s) { return String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim(); }
+function listaSugestoes() {
+  const mapa = new Map();
+  REMEDIOS.forEach(([n, d]) => mapa.set(normalizar(n), { nome: n, doses: d.split("|"), origem: "lista" }));
+  estado.pessoas.forEach((p) => (p.medicacoes || []).forEach((m) => { const k = normalizar(m.nome); if (!mapa.has(k)) mapa.set(k, { nome: m.nome, doses: m.dose ? [m.dose] : [], origem: "painel" }); else if (m.dose && !mapa.get(k).doses.includes(m.dose)) mapa.get(k).doses.push(m.dose); }));
+  return [...mapa.values()];
+}
+// liga o autocomplete em um input de nome; ao escolher, oferece doses no input de dose (opcional)
+function ligarAutocomplete(inputNome, inputDose) {
+  const box = document.createElement("div");
+  box.style.cssText = "position:absolute;left:0;right:0;top:100%;z-index:5;background:#fff;border:1px solid var(--line-2);border-radius:8px;max-height:220px;overflow:auto;display:none;box-shadow:0 4px 12px rgba(0,0,0,.08)";
+  inputNome.parentElement.style.position = "relative"; inputNome.parentElement.appendChild(box);
+  inputNome.setAttribute("autocomplete", "off");
+  const chips = document.createElement("div"); chips.style.cssText = "display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"; if (inputDose) inputDose.parentElement.appendChild(chips);
+  const mostrarDoses = (doses) => { chips.innerHTML = doses.map((d) => `<button type="button" class="leve" style="border:1px solid var(--line-2);padding:2px 8px;font-size:13px">${esc(d)}</button>`).join(""); chips.querySelectorAll("button").forEach((b) => b.onclick = () => { inputDose.value = b.textContent; chips.innerHTML = ""; }); };
+  const render = () => {
+    const q = normalizar(inputNome.value); if (q.length < 2) { box.style.display = "none"; return; }
+    const itens = listaSugestoes().filter((s) => normalizar(s.nome).includes(q)).sort((a, b) => normalizar(a.nome).indexOf(q) - normalizar(b.nome).indexOf(q)).slice(0, 8);
+    if (!itens.length) { box.style.display = "none"; return; }
+    box.innerHTML = itens.map((s, i) => `<div data-i="${i}" style="padding:7px 10px;cursor:pointer;font-size:15px">${esc(s.nome)} <span class="mudo" style="font-size:13px">${s.origem === "painel" ? "· já usado neste painel" : ""}${s.doses.length ? " · " + s.doses.slice(0, 4).join(" · ") : ""}</span></div>`).join("");
+    box.style.display = "";
+    box.querySelectorAll("[data-i]").forEach((d) => { d.onmouseenter = () => d.style.background = "var(--teal-soft)"; d.onmouseleave = () => d.style.background = ""; d.onmousedown = (e) => { e.preventDefault(); const s = itens[+d.dataset.i]; inputNome.value = s.nome; box.style.display = "none"; if (inputDose) { if (s.doses.length === 1 && !inputDose.value) inputDose.value = s.doses[0]; else if (s.doses.length > 1) mostrarDoses(s.doses); inputDose.focus(); } }; });
+  };
+  inputNome.addEventListener("input", render);
+  inputNome.addEventListener("focus", render);
+  inputNome.addEventListener("blur", () => setTimeout(() => box.style.display = "none", 150));
+  inputNome.addEventListener("keydown", (e) => { if (e.key === "Escape") box.style.display = "none"; });
+}
+
+// ======================= ativar / pausar remédio =======================
+async function alternarMedicacao(p, md, ativa) {
+  const ags = (md.agendamentos || []).sort((a, b) => a.horario.localeCompare(b.horario));
+  await api("medicacao_salvar", { id: md.id, pessoa_id: p.id, nome: md.nome, dose: md.dose, observacao: md.observacao, posologia: md.posologia, medico_id: md.medico_id, receita_id: md.receita_id, ativa, horarios: ags.map((a) => hh(a.horario)), dias_semana: ags[0]?.dias_semana || [0, 1, 2, 3, 4, 5, 6], uso: md.uso, inicio: md.inicio, dias: md.dias });
+  toast(ativa ? `${md.nome} reativado.` : `${md.nome} pausado — sem lembretes até reativar.`, "ok");
+  await carregar();
+}
+function toggleHtml(md) { return `<label class="tg" title="${md.ativa ? "Pausar lembretes" : "Reativar lembretes"}"><input type="checkbox" data-toggle="${md.id}" ${md.ativa ? "checked" : ""}><span class="tg-pista"></span><span class="mudo" style="font-size:12px">${md.ativa ? "ativo" : "pausado"}</span></label>`; }
+
+// ======================= importar receita =======================
+function modalImportarReceita(p) {
+  const { el, fechar } = abrirModal(`
+    <h2>Importar receita — ${esc(p.nome)}</h2>
+    <p class="mudo">Envie o PDF ou uma foto nítida da receita. A leitura é feita pela IA; você revisa tudo antes de cadastrar. O arquivo fica guardado em Documentos como "Receita".</p>
+    <div class="campo"><label>Arquivo (PDF, JPG ou PNG, até 8 MB)</label><input id="r-arq" type="file" accept="application/pdf,image/jpeg,image/png,image/webp"></div>
+    <div id="r-corpo"></div>
+    <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="r-ler">Ler receita</button><button class="primario oculto" id="r-confirmar">Confirmar e cadastrar</button></div>`, true);
+  let itens = [], arquivo = null, meta = {};
+  const existentes = new Set((p.medicacoes || []).map((m) => normalizar(m.nome)));
+  $("#r-ler", el).onclick = (e) => executar(e.target, async () => {
+    arquivo = $("#r-arq", el).files[0];
+    if (!arquivo) throw new Error("Escolha um arquivo");
+    if (arquivo.size > 8 * 1048576) throw new Error("Arquivo acima de 8 MB");
+    const b64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(",")[1]); fr.onerror = () => rej(new Error("Falha ao ler o arquivo")); fr.readAsDataURL(arquivo); });
+    $("#r-corpo", el).innerHTML = `<p class="mudo">Lendo a receita… (pode levar até um minuto)</p>`;
+    const r = await api("receita_ler", { pessoa_id: p.id, arquivo_base64: b64, mime: arquivo.type || "application/pdf", nome_arquivo: arquivo.name });
+    itens = r.itens.map((it) => ({ ...it, marcado: !existentes.has(normalizar(it.nome)), duplicado: existentes.has(normalizar(it.nome)), inicio: dataLocal(new Date().toISOString(), p.fuso) }));
+    meta = { profissional: r.profissional || "", data: r.data || null, medico_id: "" };
+    if (meta.profissional) { const q = normalizar(meta.profissional); const achado = estado.medicos.find((m) => q.includes(normalizar(m.nome).replace(/^dr[a]?\.?\s*/, "")) || normalizar(m.nome).includes(q.replace(/^dr[a]?\.?\s*/, ""))); if (achado) meta.medico_id = achado.id; }
+    renderItens();
+    $("#r-ler", el).classList.add("oculto"); $("#r-confirmar", el).classList.remove("oculto");
+  });
+  const renderItens = () => {
+    $("#r-corpo", el).innerHTML = `
+      <p class="mudo">${meta.profissional ? esc(meta.profissional) + " · " : ""}${meta.data ? "receita de " + meta.data.split("-").reverse().join("/") : "data não identificada"} · ${itens.length} item(ns). Ajuste o que precisar.</p>
+      <div class="campo"><label>Médico que prescreveu (vai em todos os itens)</label>${medicoSelectHtml("r-medico", meta.medico_id)}</div>
+      <table><thead><tr><th></th><th>Remédio</th><th>Dose</th><th>Como usar</th><th>Tipo</th><th>Horários</th><th>Dias</th></tr></thead><tbody>
+      ${itens.map((it, i) => `<tr ${it.duplicado ? 'style="background:var(--amber-soft)"' : ""}>
+        <td><input type="checkbox" data-k="marcado" data-i="${i}" ${it.marcado ? "checked" : ""} style="width:auto"></td>
+        <td><input data-k="nome" data-i="${i}" value="${esc(it.nome)}" style="min-width:150px">${it.duplicado ? '<div class="mudo" style="color:var(--amber)">já cadastrado — desmarcado para não duplicar</div>' : ""}</td>
+        <td><input data-k="dose" data-i="${i}" value="${esc(it.dose)}" style="width:90px"></td>
+        <td><input data-k="posologia" data-i="${i}" value="${esc(it.posologia)}" style="min-width:160px">${it.observacao ? `<div class="mudo">${esc(it.observacao)}</div>` : ""}</td>
+        <td><select data-k="tipo" data-i="${i}" style="width:auto"><option value="continuo" ${it.tipo === "continuo" ? "selected" : ""}>contínuo</option><option value="periodo" ${it.tipo === "periodo" ? "selected" : ""}>por período</option><option value="eventual" ${it.tipo === "eventual" ? "selected" : ""}>eventual</option></select></td>
+        <td><input data-k="horarios" data-i="${i}" value="${esc(it.horarios.join(", "))}" style="width:130px" ${it.tipo === "eventual" ? "disabled" : ""}></td>
+        <td><input data-k="dias" data-i="${i}" type="number" value="${it.dias ?? ""}" style="width:70px" ${it.tipo === "periodo" ? "" : "disabled"}></td></tr>`).join("")}</tbody></table>`;
+    medicoSelectLigar(el, "r-medico"); $("#r-medico", el).onchange = () => meta.medico_id = $("#r-medico", el).value;
+    $("#r-corpo", el).querySelectorAll("[data-k]").forEach((inp) => inp.addEventListener("input", () => { const it = itens[+inp.dataset.i]; const k = inp.dataset.k; if (k === "marcado") it.marcado = inp.checked; else if (k === "tipo") { it.tipo = inp.value; renderItens(); } else if (k === "horarios") it.horarios = inp.value.split(",").map((s) => s.trim()).filter(Boolean); else if (k === "dias") it.dias = inp.value ? +inp.value : null; else it[k] = inp.value; }));
+  };
+  $("#r-confirmar", el).onclick = (e) => executar(e.target, async () => {
+    const sel = itens.filter((it) => it.marcado && it.nome.trim());
+    if (!sel.length) throw new Error("Nenhum item marcado");
+    for (const it of sel) { if (it.tipo !== "eventual" && !it.horarios.every((h) => /^([01]\d|2[0-3]):[0-5]\d$/.test(h))) throw new Error(`Horário inválido em ${it.nome} (use HH:MM separados por vírgula)`); if (it.tipo === "periodo" && !(it.dias >= 1)) throw new Error(`Informe os dias do período de ${it.nome}`); }
+    // 1) guarda a receita em Documentos
+    const alvo = await api("documento_upload_url", { pessoa_id: p.id, nome_arquivo: arquivo.name });
+    const up = await fetch(alvo.url, { method: "PUT", headers: { "Content-Type": arquivo.type || "application/octet-stream" }, body: arquivo });
+    if (!up.ok) throw new Error("Falha ao guardar a receita (HTTP " + up.status + ")");
+    const doc = await api("documento_salvar", { pessoa_id: p.id, caminho: alvo.caminho, titulo: `Receita${meta.profissional ? " — " + meta.profissional : ""}`, categoria: "receita", mime: arquivo.type, tamanho: arquivo.size, data_documento: meta.data });
+    // 2) cadastra os itens, um a um; erro em um não apaga os anteriores
+    const falhas = [];
+    for (const it of sel) {
+      try {
+        if (it.tipo === "eventual") await api("eventual_salvar", { pessoa_id: p.id, nome: it.nome, dose: it.dose, indicacao: it.indicacao || it.posologia || "conforme receita", instrucoes: it.observacao, posologia: it.posologia, receita_id: doc.id, medico_id: meta.medico_id, urgencia: false, ativo: true });
+        else await api("medicacao_salvar", { pessoa_id: p.id, nome: it.nome, dose: it.dose, observacao: it.observacao, posologia: it.posologia, receita_id: doc.id, medico_id: meta.medico_id, ativa: true, horarios: it.horarios.length ? it.horarios : ["08:00"], dias_semana: [0, 1, 2, 3, 4, 5, 6], uso: it.tipo, inicio: it.inicio, dias: it.dias });
+      } catch (err) { falhas.push(`${it.nome}: ${err.message}`); }
+    }
+    fechar();
+    if (falhas.length) toast(`Cadastrados ${sel.length - falhas.length} de ${sel.length}. Falhas: ${falhas.join("; ")}`, "erro"); else toast(`${sel.length} item(ns) cadastrados a partir da receita.`, "ok");
+    await carregar();
+  });
+}
+
+// ======================= médicos =======================
+const UFS = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"];
+function fmtTelBR(t) { t = String(t || "").replace(/\D/g, ""); if (t.startsWith("55") && t.length >= 12) t = t.slice(2); if (t.length === 11) return `(${t.slice(0, 2)}) ${t.slice(2, 7)}-${t.slice(7)}`; if (t.length === 10) return `(${t.slice(0, 2)}) ${t.slice(2, 6)}-${t.slice(6)}`; return t; }
+function modalMedicos() {
+  const { el } = abrirModal(`<h2>Médicos</h2><div id="med-lista"></div><div class="pe">${podeEditar() ? `<button class="esq primario" id="med-novo">Cadastrar médico</button>` : ""}<button data-fechar>Fechar</button></div>`, true);
+  const render = () => {
+    const lista = estado.medicos;
+    $("#med-lista", el).innerHTML = lista.length ? `<table><thead><tr><th>Médico</th><th>Contato</th><th>Atendimento</th><th></th></tr></thead><tbody>${lista.map((m) => `<tr${m.ativo ? "" : ' style="opacity:.55"'}>
+      <td><b>${esc(m.nome)}</b>${m.ativo ? "" : ' <span class="chip off">inativo</span>'}<div class="mudo">${[m.especialidade ? esc(m.especialidade) : null, m.crm ? `CRM ${esc(m.crm)}${m.crm_uf ? "/" + esc(m.crm_uf) : ""}` : null].filter(Boolean).join(" · ")}</div>${m.endereco ? `<div class="mudo">${esc(m.endereco)}</div>` : ""}</td>
+      <td class="mudo">${[m.telefone_consultorio ? "Consultório " + esc(m.telefone_consultorio) : null, m.whatsapp ? `WhatsApp <a href="https://wa.me/${esc(m.whatsapp)}" target="_blank" rel="noopener">${esc(fmtTelBR(m.whatsapp))}</a>` : null, m.secretaria ? "Secretária: " + esc(m.secretaria) : null, m.email ? esc(m.email) : null].filter(Boolean).join("<br>")}</td>
+      <td class="mudo">${[m.atende_convenio ? "Convênio" + (m.convenios ? ": " + esc(m.convenios) : "") : null, m.atende_particular ? "Particular" + (m.valor_particular ? " R$ " + Number(m.valor_particular).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "") : null, m.pix ? `PIX: ${esc(m.pix)} <button class="leve" data-pix="${esc(m.pix)}" title="Copiar chave">copiar</button>` : null].filter(Boolean).join("<br>") || "—"}</td>
+      <td class="acoes">${podeEditar() ? `<button class="leve" data-med-edit="${m.id}">Editar</button>` : ""}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhum médico cadastrado.</p>`;
+    $("#med-lista", el).querySelectorAll("[data-med-edit]").forEach((b) => b.onclick = () => modalMedico(lista.find((m) => m.id === b.dataset.medEdit), render));
+    $("#med-lista", el).querySelectorAll("[data-pix]").forEach((b) => b.onclick = async () => { try { await navigator.clipboard.writeText(b.dataset.pix); toast("Chave PIX copiada.", "ok"); } catch { toast("Não foi possível copiar; selecione e copie manualmente.", "erro"); } });
+  };
+  render();
+  const bn = $("#med-novo", el); if (bn) bn.onclick = () => modalMedico(null, render);
+}
+function modalMedico(m, depois) {
+  const { el, fechar } = abrirModal(`
+    <h2>${m ? "Editar" : "Cadastrar"} médico</h2>
+    <div class="linha"><div class="campo" style="flex:1.4"><label>Nome</label><input id="m-nome" value="${esc(m?.nome)}" placeholder="Dr. Carlos Ramos"></div><div class="campo"><label>Especialidade</label><input id="m-esp" value="${esc(m?.especialidade)}" placeholder="Cardiologia"></div></div>
+    <div class="linha"><div class="campo"><label>CRM</label><input id="m-crm" value="${esc(m?.crm)}"></div><div class="campo" style="flex:.5"><label>UF</label><select id="m-uf"><option value="">—</option>${UFS.map((u) => `<option ${m?.crm_uf === u ? "selected" : ""}>${u}</option>`).join("")}</select></div><div class="campo"><label>Telefone do consultório</label><input id="m-tel" value="${esc(m?.telefone_consultorio)}"></div><div class="campo"><label>WhatsApp</label><input id="m-whats" value="${esc(m?.whatsapp ? fmtTelBR(m.whatsapp) : "")}" inputmode="tel"></div></div>
+    <div class="linha"><div class="campo"><label>Secretária</label><input id="m-sec" value="${esc(m?.secretaria)}"></div><div class="campo"><label>E-mail</label><input id="m-email" value="${esc(m?.email)}"></div></div>
+    <div class="campo"><label>Atendimento</label><div class="dias"><label><input type="checkbox" id="m-conv" ${m?.atende_convenio ? "checked" : ""}>Convênio</label><label><input type="checkbox" id="m-part" ${m?.atende_particular ? "checked" : ""}>Particular</label></div></div>
+    <div class="linha"><div class="campo" id="m-conv-area" ${m?.atende_convenio ? "" : 'style="display:none"'}><label>Convênios aceitos</label><input id="m-convs" value="${esc(m?.convenios)}" placeholder="Unimed, Hapvida"></div><div class="campo" id="m-part-area" ${m?.atende_particular ? "" : 'style="display:none"'}><label>Valor da consulta particular (R$)</label><input id="m-valor" value="${m?.valor_particular ? Number(m.valor_particular).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : ""}" inputmode="decimal"></div></div>
+    <div class="campo"><label>Chave PIX para pagamento da consulta</label><input id="m-pix" value="${esc(m?.pix)}" placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória"></div>
+    <div class="campo"><label>Endereço do consultório</label><input id="m-end" value="${esc(m?.endereco)}"></div>
+    <div class="campo"><label>Observações</label><textarea id="m-obs" rows="2">${esc(m?.observacoes)}</textarea></div>
+    ${m ? `<div class="campo"><label><input type="checkbox" id="m-ativo" style="width:auto" ${m.ativo ? "checked" : ""}> Ativo</label></div>` : ""}
+    ${m && ehAdmin() ? `<div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px"><h2 style="font-size:16px;margin-bottom:8px">Acesso ao painel</h2><div id="ma-area"><p class="mudo">Carregando…</p></div></div>` : ""}
+    <div class="pe">${m && ehAdmin() ? `<button class="perigo esq" id="m-excluir">Excluir</button>` : ""}<button data-fechar>Cancelar</button><button class="primario" id="m-salvar">Salvar</button></div>`);
+  if (m && ehAdmin()) (async () => {
+    let dadosA; try { dadosA = await api("medico_acesso_ler", { medico_id: m.id }); } catch (e) { $("#ma-area", el).innerHTML = `<p class="mudo">${esc(e.message)}</p>`; return; }
+    const renderA = () => {
+      const u = dadosA.usuario;
+      $("#ma-area", el).innerHTML = `
+        ${u ? `<p class="mudo" style="margin:0 0 8px">Acesso ${u.ativo ? "ativo" : '<b style="color:var(--red)">desativado</b>'} — entra com usuário <b>@${esc(u.login || "?")}</b> e a senha própria; vê os pacientes vinculados.</p>` : `<p class="mudo" style="margin:0 0 8px">Sem acesso ainda. Defina a senha inicial e os pacientes.</p>`}
+        <div class="linha"><div class="campo"><label>Usuário</label><input id="ma-login" value="${esc(u?.login || sugestaoLogin(m.nome))}" autocomplete="off"></div><div class="campo"><label>E-mail (recupera a senha)</label><input id="ma-email" type="email" value="${esc(u?.email)}" autocomplete="off"></div><div class="campo"><label>${u ? "Redefinir senha (em branco = manter)" : "Senha inicial (mín. 6)"}</label><input id="ma-senha" type="text" autocomplete="off"></div>${u ? `<div class="campo" style="flex:.5"><label><input type="checkbox" id="ma-ativo" style="width:auto" ${u.ativo ? "checked" : ""}> Acesso ativo</label></div>` : ""}</div>
+        <div class="campo"><label>Pacientes que ele acompanha</label><div class="dias">${estado.pessoas.map((p) => `<label><input type="checkbox" data-ma-p="${p.id}" ${(u?.pessoa_ids || []).includes(p.id) ? "checked" : ""}>${esc(p.nome)}</label>`).join("") || '<span class="mudo">Nenhum paciente cadastrado.</span>'}</div></div>
+        <button type="button" class="primario" id="ma-salvar">${u ? "Salvar acesso" : "Criar acesso"}</button>
+        <div style="margin-top:12px">${u ? conviteBlocoHtml("ma-conv") : ""}</div>`;
+      if (dadosA.convite) conviteRender(el, "ma-conv", dadosA.convite, u.id);
+      $("#ma-salvar", el).onclick = (ev) => executar(ev.target, async () => {
+        dadosA = await api("medico_acesso_salvar", { medico_id: m.id, login: $("#ma-login", el).value, email: $("#ma-email", el).value, senha_nova: $("#ma-senha", el).value, ativo: u ? $("#ma-ativo", el).checked : true, pessoa_ids: [...el.querySelectorAll("[data-ma-p]:checked")].map((c) => c.dataset.maP) });
+        toast("Acesso do médico salvo.", "ok"); renderA();
+      });
+    };
+    renderA();
+  })();
+  $("#m-conv", el).onchange = () => $("#m-conv-area", el).style.display = $("#m-conv", el).checked ? "" : "none";
+  $("#m-part", el).onchange = () => $("#m-part-area", el).style.display = $("#m-part", el).checked ? "" : "none";
+  $("#m-salvar", el).onclick = (e) => executar(e.target, async () => {
+    const w = $("#m-whats", el).value.replace(/\D/g, "");
+    const r = await api("medico_salvar", { id: m?.id, nome: $("#m-nome", el).value, especialidade: $("#m-esp", el).value, crm: $("#m-crm", el).value, crm_uf: $("#m-uf", el).value, telefone_consultorio: $("#m-tel", el).value, whatsapp: w ? (w.startsWith("55") && w.length >= 12 ? w : "55" + w) : "", secretaria: $("#m-sec", el).value, email: $("#m-email", el).value, atende_convenio: $("#m-conv", el).checked, convenios: $("#m-convs", el).value, atende_particular: $("#m-part", el).checked, valor_particular: $("#m-valor", el).value, pix: $("#m-pix", el).value, endereco: $("#m-end", el).value, observacoes: $("#m-obs", el).value, ativo: m ? $("#m-ativo", el).checked : true });
+    estado.medicos = await api("medicos_listar"); fechar(); toast("Médico salvo.", "ok"); depois(r);
+  });
+  if (m && ehAdmin()) $("#m-excluir", el).onclick = (e) => { if (!confirm(`Excluir ${m.nome}? Remédios e consultas ligados a ele ficam sem médico informado.`)) return; executar(e.target, async () => { await api("medico_excluir", { id: m.id }); estado.medicos = await api("medicos_listar"); fechar(); toast("Médico excluído.", "ok"); depois(null); }); };
+}
+
+// ======================= avisos neste aparelho (push) =======================
+const API_LEMBRETES = API.replace("painel-api", "lembretes");
+function b64ParaBytes(b64) {
+  const pad = "=".repeat((4 - (b64.length % 4)) % 4);
+  const bruto = atob((b64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  const saida = new Uint8Array(bruto.length);
+  for (let i = 0; i < bruto.length; i++) saida[i] = bruto.charCodeAt(i);
+  return saida;
+}
+function pushSuportado() { return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window; }
+async function pushEstadoLocal() {
+  if (!pushSuportado()) return { suportado: false };
+  if (Notification.permission === "denied") return { suportado: true, bloqueado: true };
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = reg ? await reg.pushManager.getSubscription() : null;
+    return { suportado: true, bloqueado: false, sub };
+  } catch { return { suportado: true, bloqueado: false, sub: null }; }
+}
+async function pushAtivar() {
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") throw new Error("Permissão de notificação negada — libere nas configurações do navegador.");
+  const reg = await navigator.serviceWorker.ready;
+  const r = await fetch(API_LEMBRETES + "?acao=chave");
+  const j = await r.json();
+  if (!j.chave) throw new Error(j.erro || "Não consegui a chave dos avisos no servidor.");
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64ParaBytes(j.chave) });
+  const dados = sub.toJSON();
+  await api("push_inscrever", { endpoint: sub.endpoint, p256dh: dados.keys.p256dh, auth: dados.keys.auth });
+  await reg.showNotification("VigilCare", { body: "Avisos ativados neste aparelho ✓", icon: "vigilcare-icone-192.png", tag: "vc-teste" });
+  return sub;
+}
+async function pushDesativar() {
+  const reg = await navigator.serviceWorker.getRegistration();
+  const sub = reg ? await reg.pushManager.getSubscription() : null;
+  if (sub) { try { await api("push_desinscrever", { endpoint: sub.endpoint }); } catch (e) { console.warn(e); } await sub.unsubscribe(); }
+}
+function modalAvisos() {
+  const { el } = abrirModal(`
+    <h2>🔔 Avisos neste aparelho</h2>
+    <p class="mudo">Receba os lembretes (remédios, medições, consultas) como notificação, mesmo com o painel fechado. No iPhone, primeiro instale o VigilCare na tela inicial (Compartilhar → Adicionar à Tela de Início).</p>
+    <div id="av-area"><p class="mudo">Verificando…</p></div>
+    <div class="pe"><button data-fechar>Fechar</button></div>`);
+  const render = async () => {
+    const area = $("#av-area", el); if (!area) return;
+    const e = await pushEstadoLocal();
+    if (!e.suportado) { area.innerHTML = '<p class="mudo">Este navegador não aceita avisos. No iPhone, instale o app na tela inicial e abra por lá.</p>'; return; }
+    if (e.bloqueado) { area.innerHTML = '<p class="mudo" style="color:var(--red)">As notificações estão bloqueadas para este site. Libere nas configurações do navegador e tente de novo.</p>'; return; }
+    let inscritoServidor = false;
+    if (e.sub) { try { const r = await api("push_estado", { endpoint: e.sub.endpoint }); inscritoServidor = !!r.inscrito; } catch { /* segue */ } }
+    area.innerHTML = e.sub && inscritoServidor
+      ? '<p style="color:var(--teal-ink)"><b>Avisos ativos neste aparelho ✓</b></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="leve" id="av-teste">Enviar teste</button><button class="leve perigo" id="av-des">Desativar</button></div>'
+      : '<button class="primario" id="av-ativar">Ativar avisos</button>';
+    const bA = $("#av-ativar", el); if (bA) bA.onclick = (ev) => executar(ev.target, async () => { await pushAtivar(); toast("Avisos ativados.", "ok"); render(); });
+    const bT = $("#av-teste", el); if (bT) bT.onclick = async () => { const reg = await navigator.serviceWorker.ready; await reg.showNotification("VigilCare", { body: "Teste de aviso — tudo certo ✓", icon: "vigilcare-icone-192.png", tag: "vc-teste" }); };
+    const bD = $("#av-des", el); if (bD) bD.onclick = (ev) => executar(ev.target, async () => { await pushDesativar(); toast("Avisos desativados neste aparelho.", "ok"); render(); });
+  };
+  render();
+}
+$("#btn-avisos").onclick = modalAvisos;
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("sw.js").catch(function (e) { console.error("Service worker:", e); });
+}
+// toque no "✓ Tomei" da notificação: marca a dose (funciona sem login; o código identifica quem tocou)
+(async () => {
+  const ps = new URLSearchParams(location.search);
+  const tok = ps.get("tok");
+  if (!tok) return;
+  history.replaceState(null, "", location.pathname);
+  try {
+    const resp = await api("tomada_por_token", { tok, r: ps.get("r") || "" });
+    if (resp && resp.mensagem) toast(resp.mensagem, resp.ja ? "" : "ok");
+  } catch (e) { toast("Não consegui marcar a dose: " + e.message, "erro"); }
+})();
+
+// ======================= esqueci minha senha =======================
+function modalEsqueciSenha() {
+  const { el, fechar } = abrirModal(`
+    <h2>Recuperar senha</h2>
+    <p class="mudo">Vale para pacientes, cuidadores e médicos com e-mail cadastrado. A senha do administrador é trocada nos Secrets do servidor.</p>
+    <div class="campo"><label>Seu usuário</label><input id="rec-user" autocomplete="username" placeholder="maria.nobre"></div>
+    <button class="primario" id="rec-enviar">Enviar código por e-mail</button>
+    <p class="mudo" id="rec-msg" style="margin:8px 0 0"></p>
+    <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:12px">
+      <p class="mudo" style="margin:0 0 8px">Já recebeu o código? Digite abaixo:</p>
+      <div class="linha"><div class="campo"><label>Código (6 dígitos)</label><input id="rec-cod" inputmode="numeric" maxlength="6" style="letter-spacing:.2em"></div><div class="campo"><label>Senha nova (mín. 6)</label><input id="rec-s1" type="password" autocomplete="new-password"></div></div>
+      <div class="campo"><label>Repita a senha nova</label><input id="rec-s2" type="password" autocomplete="new-password"></div>
+      <button class="primario" id="rec-trocar">Redefinir senha</button>
+      <p class="mudo" id="rec-erro" style="color:var(--red);margin:8px 0 0"></p>
+    </div>
+    <div class="pe"><button data-fechar>Fechar</button></div>`);
+  $("#rec-user", el).value = ($("#usuario") ? $("#usuario").value.trim() : "");
+  $("#rec-enviar", el).onclick = (ev) => executar(ev.target, async () => {
+    $("#rec-msg", el).textContent = ""; $("#rec-erro", el).textContent = "";
+    const r = await api("senha_esqueci", { usuario: $("#rec-user", el).value });
+    $("#rec-msg", el).textContent = r?.mensagem || "Se este usuário tiver e-mail cadastrado, o código foi enviado.";
+    $("#rec-msg", el).style.color = "var(--teal-ink)";
+  });
+  $("#rec-trocar", el).onclick = (ev) => executar(ev.target, async () => {
+    $("#rec-erro", el).textContent = "";
+    const s1 = $("#rec-s1", el).value, s2 = $("#rec-s2", el).value;
+    if (s1 !== s2) { $("#rec-erro", el).textContent = "As senhas não conferem."; return; }
+    const usuarioRec = $("#rec-user", el).value.trim();
+    await api("senha_redefinir", { usuario: usuarioRec, codigo: $("#rec-cod", el).value, senha: s1 });
+    fechar();
+    toast("Senha redefinida. Entrando…", "ok");
+    $("#usuario").value = usuarioRec; $("#senha").value = s1; entrar();
+  });
+}
+
+// ======================= convite: link, cópia e cadastro =======================
+function linkConvite(codigo) { return `${location.origin}${location.pathname}?convite=${codigo}`; }
+function conviteBlocoHtml(idPrefixo) { return `<div id="${idPrefixo}-area"><p class="mudo">Carregando convite…</p></div>`; }
+function conviteRender(el, idPrefixo, convite, usuarioId) {
+  const area = $(`#${idPrefixo}-area`, el); if (!area) return;
+  if (!convite) { area.innerHTML = ""; return; }
+  const url = linkConvite(convite.codigo);
+  area.innerHTML = `
+    <label>Link de convite para pacientes</label>
+    <div style="background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <b style="letter-spacing:.12em;font-size:17px">${esc(convite.codigo)}</b>
+      <span class="mudo" style="word-break:break-all;flex:1;min-width:180px">${esc(url)}</span>
+      ${convite.ativo ? "" : '<span class="chip erro">desativado</span>'}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <button type="button" class="leve" data-c="copiar">Copiar link</button>
+      <button type="button" class="leve" data-c="whats">Enviar por WhatsApp</button>
+      <button type="button" class="leve" data-c="alternar">${convite.ativo ? "Desativar" : "Reativar"}</button>
+      <button type="button" class="leve" data-c="regenerar" title="Gera outro código; o link antigo deixa de valer">Gerar novo link</button>
+    </div>
+    <p class="mudo" style="margin-top:6px">Quem abrir o link cria a própria conta e já entra vinculado.</p>`;
+  const acao = async (tipo) => {
+    try {
+      if (tipo === "copiar") { await navigator.clipboard.writeText(url); toast("Link copiado.", "ok"); return; }
+      if (tipo === "whats") { window.open(`https://wa.me/?text=${encodeURIComponent(`Olá! Use este link para criar sua conta no VigilCare e começar seu acompanhamento: ${url}`)}`, "_blank"); return; }
+      let novo;
+      if (tipo === "alternar") novo = await api("convite_ativar", { ativo: !convite.ativo, ...(usuarioId !== undefined ? { usuario_id: usuarioId } : {}) });
+      else { if (!confirm("Gerar novo link? O anterior deixa de funcionar.")) return; novo = await api("convite_regenerar", usuarioId !== undefined ? { usuario_id: usuarioId } : {}); }
+      conviteRender(el, idPrefixo, novo, usuarioId); toast("Convite atualizado.", "ok");
+    } catch (e) { toast(e.message, "erro"); }
+  };
+  area.querySelectorAll("[data-c]").forEach((b) => b.onclick = () => acao(b.dataset.c));
+}
+const PAPEL_ICONE = { admin: "🛡️", medico: "🩺", cuidador: "🤝", paciente: "🧓" };
+async function renderRede(p) {
+  const area = $("#rede-area"); if (!area) return;
+  try {
+    const r = await api("rede_listar", { pessoa_id: p.id });
+    const rotuloPapel = (m) => m.papel === "medico" ? ("Médico" + (m.especialidade ? " · " + esc(m.especialidade) : "")) : m.papel === "admin" ? "Administrador" : m.papel === "paciente" ? "Paciente" : (m.relacao ? esc(m.relacao) : "Cuidador");
+    area.innerHTML = (r.membros || []).length ? `<table><tbody>${r.membros.map((m) => `<tr${m.ativo ? "" : ' style="opacity:.55"'}><td style="width:30px">${PAPEL_ICONE[m.papel] || "👤"}</td><td><b>${esc(m.nome)}</b>${m.login ? ` <span class="mudo">@${esc(m.login)}</span>` : ""}${m.ativo ? "" : ' <span class="chip off">inativo</span>'}</td><td class="mudo">${rotuloPapel(m)}</td><td class="mudo" title="${m.avisos ? "Recebe os avisos neste momento" : "Ainda não ativou os avisos (sininho 🔔 no topo)"}">${m.avisos ? "🔔 recebe avisos" : "🔕 sem avisos"}</td></tr>`).join("")}</tbody></table><p class="mudo" style="margin:8px 0 0">Quem está na rede vê a ficha de ${esc(p.nome)}, recebe os lembretes no celular (sininho 🔔) e pode marcar “✓ Tomei” — cada registro guarda o nome de quem fez.</p>` : `<p class="mudo">Ninguém vinculado ainda.</p>`;
+  } catch (e) { area.innerHTML = `<p style="color:var(--red)">Falha ao listar a rede: ${esc(e.message)}</p>`; }
+}
+function modalConviteFamiliar(p) {
+  const { el } = abrirModal(`<h2>Convidar familiar — ${esc(p.nome)}</h2>
+    <p class="mudo">Envie o link para um familiar dividir o cuidado: ele cria a própria conta, vê a ficha de ${esc(p.nome)}, recebe os lembretes e pode registrar remédios, aferições e documentos — tudo com o nome de quem fez.</p>
+    <div id="cf-area"><p class="mudo">Carregando convite…</p></div>
+    <div class="pe"><button data-fechar>Fechar</button></div>`);
+  const render = (c) => {
+    const url = linkConvite(c.codigo);
+    $("#cf-area", el).innerHTML = `
+      <div style="background:var(--bg);border-radius:8px;padding:10px 12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><b style="letter-spacing:.12em;font-size:17px">${esc(c.codigo)}</b><span class="mudo" style="word-break:break-all;flex:1;min-width:180px">${esc(url)}</span>${c.ativo ? "" : '<span class="chip erro">desativado</span>'}</div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button type="button" class="leve" data-cf="copiar">Copiar link</button>
+        <button type="button" class="leve" data-cf="whats">Enviar por WhatsApp</button>
+        <button type="button" class="leve" data-cf="alternar">${c.ativo ? "Desativar" : "Reativar"}</button>
+        <button type="button" class="leve" data-cf="regenerar" title="Gera outro código; o link antigo deixa de valer">Gerar novo link</button>
+      </div>`;
+    $("#cf-area", el).querySelectorAll("[data-cf]").forEach((b) => b.onclick = async () => {
+      try {
+        if (b.dataset.cf === "copiar") { await navigator.clipboard.writeText(url); toast("Link copiado.", "ok"); return; }
+        if (b.dataset.cf === "whats") { window.open(`https://wa.me/?text=${encodeURIComponent(`Olá! Use este link para entrar na rede de cuidado de ${p.nome} no VigilCare: ${url}`)}`, "_blank"); return; }
+        let novo;
+        if (b.dataset.cf === "alternar") novo = await api("convite_familiar_ativar", { pessoa_id: p.id, ativo: !c.ativo });
+        else { if (!confirm("Gerar novo link? O anterior deixa de funcionar.")) return; novo = await api("convite_familiar_regenerar", { pessoa_id: p.id }); }
+        render(novo); toast("Convite atualizado.", "ok");
+      } catch (e2) { toast(e2.message, "erro"); }
+    });
+  };
+  (async () => { try { render(await api("convite_familiar", { pessoa_id: p.id })); } catch (e) { $("#cf-area", el).innerHTML = `<p class="mudo">${esc(e.message)}</p>`; } })();
+}
+function telaCadastroConvite(codigo) {
+  let tipoConvite = "paciente";
+  $("#login").classList.add("oculto");
+  let tela = $("#cadastro-convite");
+  if (!tela) { tela = document.createElement("div"); tela.id = "cadastro-convite"; tela.style.cssText = "max-width:440px;margin:8vh auto;padding:0 20px"; document.body.appendChild(tela); }
+  tela.innerHTML = `<div style="display:flex;align-items:center;gap:12px;margin-bottom:6px"><img src="vigilcare-icone.svg" alt="" width="48" height="48"><h1 style="font-size:26px"><span style="color:var(--teal-ink)">Vigil</span><span style="color:var(--teal);font-weight:400">Care</span></h1></div>
+    <div id="cc-quem" class="mudo" style="margin-bottom:14px">Conferindo o convite…</div>
+    <div id="cc-form" class="oculto">
+      <div class="campo"><label>Nome completo</label><input id="cc-nome" autocomplete="name"></div>
+      <div class="campo" id="cc-tel-campo"><label>WhatsApp com DDD (onde chegam os lembretes)</label><input id="cc-tel" inputmode="tel" placeholder="(85) 99999-8888"></div>
+      <div class="campo oculto" id="cc-rel-campo"><label>Relação com o paciente</label><select id="cc-rel"><option>Filho(a)</option><option>Cônjuge</option><option>Neto(a)</option><option>Irmão/Irmã</option><option>Cuidador(a) profissional</option><option>Outro</option></select></div>
+      <div class="campo"><label>Escolha seu nome de usuário</label><input id="cc-user" autocomplete="username" placeholder="maria.silva"></div>
+      <div class="campo"><label>E-mail (recomendado — recupera a senha)</label><input id="cc-email" type="email" autocomplete="email" placeholder="maria@gmail.com"></div>
+      <div class="linha"><div class="campo"><label>Crie uma senha (mín. 6)</label><input id="cc-s1" type="password" autocomplete="new-password"></div><div class="campo"><label>Repita a senha</label><input id="cc-s2" type="password" autocomplete="new-password"></div></div>
+      <button class="primario" id="cc-criar" style="width:100%">Criar minha conta</button>
+      <p class="mudo" id="cc-erro" style="color:var(--red)"></p>
+    </div>`;
+  (async () => {
+    try {
+      const info = await api("convite_info", { codigo });
+      if (info.tipo === "familiar") {
+        tipoConvite = "familiar";
+        $("#cc-quem").innerHTML = `Você foi convidado para a <b>rede de cuidado de ${esc(info.paciente)}</b> no VigilCare: você vê a ficha, recebe os lembretes e pode registrar remédios, aferições e documentos. Crie sua conta:`;
+        $("#cc-tel-campo").classList.add("oculto");
+        $("#cc-rel-campo").classList.remove("oculto");
+      } else {
+        $("#cc-quem").innerHTML = `Você foi convidado por <b>${esc(info.convidante)}</b>${info.detalhe ? ` (${esc(info.detalhe)})` : ""} para o acompanhamento de saúde. Crie sua conta:`;
+      }
+      $("#cc-form").classList.remove("oculto");
+    } catch (e) { $("#cc-quem").innerHTML = `<span style="color:var(--red)">${esc(e.message)}</span>`; }
+  })();
+  setTimeout(() => { const n = $("#cc-nome"), u2 = $("#cc-user"); if (n && u2) n.addEventListener("blur", () => { if (!u2.value) u2.value = sugestaoLogin(n.value); }); }, 300);
+  $("#cc-criar").onclick = async (ev) => {
+    const b = ev.target; b.disabled = true; $("#cc-erro").textContent = "";
+    try {
+      const s1 = $("#cc-s1").value, s2 = $("#cc-s2").value;
+      if (s1 !== s2) throw new Error("As senhas não conferem");
+      const fuso = (Intl.DateTimeFormat().resolvedOptions().timeZone) || "America/Fortaleza";
+      let tel = $("#cc-tel").value.replace(/\D/g, ""); if (tel && !tel.startsWith("55")) tel = "55" + tel;
+      const dados = { codigo, nome: $("#cc-nome").value, usuario: $("#cc-user").value, email: $("#cc-email").value, senha: s1, fuso };
+      if (tipoConvite === "familiar") dados.relacao = $("#cc-rel").value; else dados.telefone = tel;
+      await api("convite_cadastrar", dados);
+      toast("Conta criada! Entrando…", "ok");
+      const usuarioNovo = $("#cc-user").value;
+      history.replaceState(null, "", location.pathname);
+      tela.remove();
+      $("#usuario").value = usuarioNovo; $("#senha").value = s1; entrar();
+    } catch (e) { const alvo = $("#cc-erro"); if (alvo) alvo.textContent = e.message; else toast(e.message, "erro"); }
+    b.disabled = false;
+  };
+}
+
+// ======================= foto 3x4 =======================
+function fotoPara3x4(arquivo) {
+  return new Promise((res, rej) => {
+    if (!/^image\//.test(arquivo.type)) return rej(new Error("Escolha um arquivo de imagem"));
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const alvoL = 300, alvoA = 400, prop = 3 / 4;
+        let cL = img.width, cA = img.height;
+        if (cL / cA > prop) cL = Math.round(cA * prop); else cA = Math.round(cL / prop);
+        const sx = Math.round((img.width - cL) / 2), sy = Math.round((img.height - cA) / 2);
+        const cv = document.createElement("canvas"); cv.width = alvoL; cv.height = alvoA;
+        cv.getContext("2d").drawImage(img, sx, sy, cL, cA, 0, 0, alvoL, alvoA);
+        res(cv.toDataURL("image/jpeg", 0.85).split(",")[1]);
+      } catch (e) { rej(new Error("Falha ao processar a imagem: " + e.message)); }
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => rej(new Error("Não consegui abrir essa imagem"));
+    img.src = URL.createObjectURL(arquivo);
+  });
+}
+
+// ======================= comorbidades =======================
+function anamneseComorbidades(r) {
+  const c = [];
+  if (anSim(r, "q12")) c.push("Hipertensão");
+  if (anSim(r, "q13")) { const t = anSel(r, "q13a", "tipo 1") ? "tipo 1" : anSel(r, "q13a", "tipo 2") ? "tipo 2" : ""; c.push(`Diabetes${t ? " " + t : ""}${anSel(r, "q13a", "usa insulina") ? " · insulina" : ""}`); }
+  if (anSim(r, "q14")) c.push("Dislipidemia");
+  (r.q15?.sel || []).forEach((x) => c.push({ "infarto": "Infarto prévio", "insuficiência cardíaca": "Insuficiência cardíaca", "angina": "Angina", "arritmia ou fibrilação atrial": "Arritmia / fibrilação atrial", "válvula cardíaca": "Valvopatia", "marca-passo ou CDI": "Marca-passo / CDI", "stent ou ponte de safena": "Stent / ponte de safena" }[x] || x));
+  if (anSim(r, "q16")) c.push("AVC / AIT prévio");
+  if (anSim(r, "q17")) c.push("Doença renal crônica" + (anSim(r, "q17a") ? " · diálise" : ""));
+  if (anSim(r, "q18")) c.push("Doença hepática");
+  (r.q19?.sel || []).forEach((x) => { if (x === "asma") c.push("Asma"); if (x === "DPOC ou enfisema") c.push("DPOC"); if (x === "apneia do sono") c.push("Apneia do sono"); if (x === "usa oxigênio em casa") c.push("Oxigênio domiciliar"); });
+  if (r.q20 && r.q20 !== "não") c.push({ hipotireoidismo: "Hipotireoidismo", hipertireoidismo: "Hipertireoidismo", nódulo: "Nódulo de tireoide" }[r.q20] || r.q20);
+  if (anSim(r, "q21")) c.push("Câncer" + (anDet(r, "q21") ? ": " + anDet(r, "q21").slice(0, 40) : ""));
+  [["q22", "Epilepsia"], ["q23", "Parkinson"], ["q24", "Demência"], ["q25", "Transtorno psiquiátrico"], ["q26", "Osteoporose"], ["q27", "Artrose / artrite"], ["q28", "Gota"], ["q29", "Anemia"], ["q30", "Coagulopatia"], ["q31", "HIV / hepatite viral"], ["q32", "Doença autoimune"], ["q33", "Glaucoma / catarata"], ["q34", "Úlcera / refluxo"], ["q35", "Incontinência / próstata"]].forEach(([id, t]) => { if (anSim(r, id)) c.push(t); });
+  if (r.q36) c.push(String(r.q36).slice(0, 60));
+  return [...new Set(c)];
+}
+function comorbidadesDe(p, resumo) { if (Array.isArray(p.comorbidades)) return p.comorbidades; return resumo?.comorbidades || []; }
+function chipsHtml(lista, classe) { return lista.map((x) => `<span class="chip ${classe}" style="margin:2px 4px 2px 0">${esc(x)}</span>`).join(""); }
+function idadeDe(nasc) { if (!nasc) return null; const a = Math.floor((Date.now() - new Date(nasc).getTime()) / 31557600000); return a > 0 && a < 130 ? a : null; }
+function modalComorbidades(p, resumo) {
+  const auto = resumo?.comorbidades || [];
+  const atual = comorbidadesDe(p, resumo);
+  const { el, fechar } = abrirModal(`
+    <h2>Ajustar comorbidades — ${esc(p.nome)}</h2>
+    <p class="mudo">Uma por linha. A lista automática vem da anamnese; o que você salvar aqui prevalece. "Voltar ao automático" apaga o ajuste manual.</p>
+    <div class="campo"><textarea id="f-com" rows="8">${esc(atual.join("\n"))}</textarea></div>
+    ${auto.length ? `<p class="mudo">Da anamnese: ${auto.map(esc).join(" · ")}</p>` : `<p class="mudo">Anamnese ainda sem doenças marcadas.</p>`}
+    <div class="pe"><button class="esq" id="f-auto">Voltar ao automático</button><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
+  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("comorbidades_salvar", { pessoa_id: p.id, comorbidades: $("#f-com", el).value.split("\n").map((s) => s.trim()).filter(Boolean) }); fechar(); toast("Comorbidades salvas.", "ok"); await carregar(); });
+  $("#f-auto", el).onclick = (e) => executar(e.target, async () => { await api("comorbidades_salvar", { pessoa_id: p.id, comorbidades: null }); fechar(); toast("Voltou ao automático.", "ok"); await carregar(); });
+}
+function renderVisaoGeral() {
+  const m = $("#detalhe");
+  const cards = estado.pessoas.map((p) => {
+    const r = estado.visao[p.id];
+    const com = comorbidadesDe(p, r);
+    const pend = estado.envios7d.filter((e) => e.pessoa_id === p.id && (e.status === "sem_resposta" || e.status === "erro")).length;
+    const fora = estado.leituras7d.filter((l) => l.pessoa_id === p.id && l.fora_faixa).length + estado.sinais7d.filter((s) => s.pessoa_id === p.id && s.fora_faixa).length;
+    const total = pend + fora;
+    const idade = idadeDe(r?.nasc);
+    return `<div class="bloco-card" data-id="${p.id}" style="background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">${avatarHtml(p, 34)}<b style="font-size:16px">${esc(p.nome)}</b>${p.ativa ? "" : '<span class="chip off">pausada</span>'}<span class="mudo" style="margin-left:auto;white-space:nowrap;${total ? "color:var(--red)" : ""}">${total ? `${total} alerta${total > 1 ? "s" : ""} · 7d` : "sem alertas"}</span></div>
+      <div class="mudo" style="margin:2px 0 6px">${[idade ? idade + " anos" : null, r?.mora ? "mora " + r.mora : null].filter(Boolean).join(" · ") || fmtTel(p.telefone)}</div>
+      ${com.length ? `<div>${chipsHtml(com, "erro")}</div>` : `<p class="mudo" style="margin:0">${r ? "Nenhuma comorbidade registrada." : "Anamnese pendente — comorbidades aparecem após o preenchimento."}</p>`}
+      ${(r?.alertas || []).length ? `<div style="margin-top:4px">${chipsHtml(r.alertas.slice(0, 4), "alerta")}${r.alertas.length > 4 ? `<span class="mudo">+${r.alertas.length - 4}</span>` : ""}</div>` : ""}
+    </div>`;
+  }).join("");
+  m.innerHTML = `<div class="cabecalho"><div><h1>Visão geral</h1><div class="dados">${estado.pessoas.length} paciente${estado.pessoas.length === 1 ? "" : "s"} · comorbidades e alertas dos últimos 7 dias</div></div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px">${cards || `<p class="mudo">Nenhum paciente cadastrado. Clique em <b>Novo paciente</b>.</p>`}</div>`;
+  m.querySelectorAll("[data-id]").forEach((c) => c.onclick = () => { diaMed = null; estado.selecionada = c.dataset.id; renderLista(); renderDetalhe(); });
+}
+
+// ======================= relatório =======================
+function grafico(leituras, p) {
+  if (leituras.length < 2) return "";
+  const W = 800, H = 220, ml = 40, mr = 10, mt = 10, mb = 24;
+  const xs = leituras.map((l) => new Date(l.medido_em).getTime());
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const vals = leituras.flatMap((l) => [l.sistolica, l.diastolica]);
+  const y0 = Math.floor((Math.min(...vals) - 10) / 10) * 10, y1 = Math.ceil((Math.max(...vals) + 10) / 10) * 10;
+  const X = (t) => ml + (t - x0) / Math.max(1, x1 - x0) * (W - ml - mr), Y = (v) => mt + (y1 - v) / (y1 - y0) * (H - mt - mb);
+  const linha = (k) => leituras.map((l) => `${X(new Date(l.medido_em).getTime()).toFixed(1)},${Y(l[k]).toFixed(1)}`).join(" ");
+  const grade = []; for (let v = y0; v <= y1; v += 20) grade.push(`<line x1="${ml}" x2="${W - mr}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e5e9e7"/><text x="${ml - 6}" y="${Y(v) + 4}" font-size="11" text-anchor="end" fill="#8f9c9c">${v}</text>`);
+  const lim = (v, cor) => (v >= y0 && v <= y1) ? `<line x1="${ml}" x2="${W - mr}" y1="${Y(v)}" y2="${Y(v)}" stroke="${cor}" stroke-dasharray="4 4"/>` : "";
+  return `<svg class="grafico" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolução da pressão arterial">${grade.join("")}${lim(p.pa_sis_max, "#e24b4a")}${lim(p.pa_dia_max, "#e24b4a")}
+    <polyline points="${linha("sistolica")}" fill="none" stroke="#0f6e56" stroke-width="2"/><polyline points="${linha("diastolica")}" fill="none" stroke="#378add" stroke-width="2"/>
+    ${leituras.map((l) => `<circle cx="${X(new Date(l.medido_em).getTime())}" cy="${Y(l.sistolica)}" r="3" fill="${l.fora_faixa ? "#e24b4a" : "#0f6e56"}"/><circle cx="${X(new Date(l.medido_em).getTime())}" cy="${Y(l.diastolica)}" r="3" fill="${l.fora_faixa ? "#e24b4a" : "#378add"}"/>`).join("")}
+    <text x="${ml}" y="${H - 6}" font-size="11" fill="#8f9c9c">${fmtData(leituras[0].medido_em, p.fuso, false)}</text><text x="${W - mr}" y="${H - 6}" font-size="11" text-anchor="end" fill="#8f9c9c">${fmtData(leituras[leituras.length - 1].medido_em, p.fuso, false)}</text>
+    <text x="${W - mr}" y="${mt + 10}" font-size="11" text-anchor="end" fill="#0f6e56">sistólica</text><text x="${W - mr}" y="${mt + 24}" font-size="11" text-anchor="end" fill="#378add">diastólica</text></svg>`;
+}
+
+function modalRelatorio(p) {
+  const hoje = new Date(); const ini = new Date(hoje.getTime() - 29 * 86400000);
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const { el } = abrirModal(`
+    <div class="nao-imprimir" style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px">
+      <div class="campo" style="margin:0"><label>De</label><input type="date" id="r-de" value="${iso(ini)}"></div>
+      <div class="campo" style="margin:0"><label>Até</label><input type="date" id="r-ate" value="${iso(hoje)}"></div>
+      <button class="primario" id="r-gerar">Gerar</button><button id="r-imprimir" disabled>Imprimir / salvar PDF</button><button data-fechar style="margin-left:auto">Fechar</button>
+    </div>
+    <div id="r-corpo"><p class="mudo">Escolha o período e clique em Gerar.</p></div>`, true);
+  const gerar = async () => {
+    const de = $("#r-de", el).value, ate = $("#r-ate", el).value;
+    if (!de || !ate || de > ate) return toast("Período inválido.", "erro");
+    const corpo = $("#r-corpo", el); corpo.innerHTML = `<p class="mudo">Gerando…</p>`;
+    try {
+      const deIso = new Date(de + "T00:00:00").toISOString(), ateIso = new Date(ate + "T23:59:59").toISOString();
+      const [leituras, envios, aguaReg, medidasRel, sinaisRel, evRel, anam] = await Promise.all([api("leituras_listar", { pessoa_id: p.id, de: deIso, ate: ateIso }), api("envios_listar", { pessoa_id: p.id, de: deIso, ate: ateIso }), api("agua_listar", { pessoa_id: p.id, de: deIso, ate: ateIso }), api("medidas_listar", { pessoa_id: p.id }), api("sinais_listar", { pessoa_id: p.id, de: deIso, ate: ateIso }), api("eventuais_listar", { pessoa_id: p.id }), api("anamnese_ler", { pessoa_id: p.id })]);
+      const gliR = sinaisRel.filter((s) => s.tipo === "glicemia"), oxiR = sinaisRel.filter((s) => s.tipo === "oximetria");
+      const mN = (arr, k) => { const v = arr.filter((x) => x[k] != null); return v.length ? Math.round(v.reduce((s, x) => s + x[k], 0) / v.length) : "—"; };
+      const alertasRel = anam.atual?.alertas || [];
+      const L = [...leituras].reverse();
+      const n = L.length, med = (k) => n ? Math.round(L.reduce((s, l) => s + l[k], 0) / n) : "—";
+      const min = n ? L.reduce((a, l) => l.sistolica < a.sistolica ? l : a) : null, max = n ? L.reduce((a, l) => l.sistolica > a.sistolica ? l : a) : null;
+      const fora = L.filter((l) => l.fora_faixa).length;
+      const eM = envios.filter((e) => e.tipo === "medicacao" && e.status !== "pendente"), eP = envios.filter((e) => e.tipo === "pressao" && e.status !== "pendente");
+      const pct = (a, b) => b ? Math.round(100 * a / b) + "%" : "—";
+      const porRemedio = {}; eM.forEach((e) => { const k = e.agendamentos?.medicacoes?.nome || "remédio"; porRemedio[k] = porRemedio[k] || { t: 0, c: 0 }; porRemedio[k].t++; if (e.status === "confirmado") porRemedio[k].c++; });
+      corpo.innerHTML = `<div class="pagina-rel">
+        <h2>${esc(p.nome)}</h2><p class="mudo" style="margin:0 0 14px">Relatório de ${fmtData(deIso, p.fuso, false)} a ${fmtData(ateIso, p.fuso, false)} · ${fmtTel(p.telefone)} · alerta acima de ${p.pa_sis_max}/${p.pa_dia_max} · gerado em ${fmtData(new Date().toISOString(), p.fuso)}</p>
+        ${(() => { const co = comorbidadesDe(p, { comorbidades: anam.atual?.comorbidades || [] }); return co.length ? `<div style="background:var(--red-soft);border-radius:8px;padding:6px 12px;margin-bottom:8px"><b style="color:var(--red)">Comorbidades:</b> ${co.map(esc).join(" · ")}</div>` : ""; })()}
+        ${alertasRel.length ? `<div style="background:var(--amber-soft);border-radius:8px;padding:6px 12px;margin-bottom:12px"><b style="color:var(--amber)">Alertas clínicos:</b> ${alertasRel.map(esc).join(" · ")}</div>` : ""}
+        ${p.historico_saude ? `<h3>Histórico de saúde</h3><p style="white-space:pre-wrap">${esc(p.historico_saude)}</p>` : ""}
+        <h3>Pressão arterial</h3>
+        <div class="metricas">
+          <div class="metrica"><div class="r">Leituras</div><div class="v">${n}</div></div>
+          <div class="metrica"><div class="r">Média</div><div class="v">${n ? `${med("sistolica")}/${med("diastolica")}` : "—"}</div></div>
+          <div class="metrica"><div class="r">Menor / maior sistólica</div><div class="v">${n ? `${min.sistolica}/${min.diastolica} · ${max.sistolica}/${max.diastolica}` : "—"}</div></div>
+          <div class="metrica ${fora ? "alerta" : ""}"><div class="r">Fora da faixa</div><div class="v">${fora}${n ? ` <span style="font-size:14px">(${pct(fora, n)})</span>` : ""}</div></div>
+        </div>
+        ${grafico(L, p)}
+        <h3 style="margin-top:16px">Adesão aos lembretes</h3>
+        <table><thead><tr><th>Item</th><th>Lembretes</th><th>Confirmados</th><th>Sem resposta</th><th>Adesão</th></tr></thead><tbody>
+          ${Object.entries(porRemedio).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.t}</td><td>${v.c}</td><td>${v.t - v.c}</td><td>${pct(v.c, v.t)}</td></tr>`).join("")}
+          <tr><td>Aferição de pressão</td><td>${eP.length}</td><td>${eP.filter((e) => e.status === "confirmado").length}</td><td>${eP.filter((e) => e.status !== "confirmado").length}</td><td>${pct(eP.filter((e) => e.status === "confirmado").length, eP.length)}</td></tr>
+        </tbody></table>
+        <h3 style="margin-top:16px">Glicemia</h3>
+        ${gliR.length ? `<div class="metricas"><div class="metrica"><div class="r">Medições</div><div class="v">${gliR.length}</div></div><div class="metrica"><div class="r">Média</div><div class="v">${mN(gliR, "glicemia")}</div></div><div class="metrica"><div class="r">Jejum (média)</div><div class="v">${mN(gliR.filter((s) => s.contexto === "jejum"), "glicemia")}</div></div><div class="metrica ${gliR.filter((s) => s.fora_faixa).length ? "alerta" : ""}"><div class="r">Fora da faixa</div><div class="v">${gliR.filter((s) => s.fora_faixa).length}</div></div></div>
+        <table><thead><tr><th>Quando</th><th>Glicemia</th><th>Contexto</th><th>Origem</th></tr></thead><tbody>${gliR.map((s) => `<tr><td>${fmtData(s.medido_em, p.fuso)}</td><td>${s.fora_faixa ? `<span class="chip erro">${s.glicemia}</span>` : s.glicemia}</td><td class="mudo">${CTX[s.contexto] || "—"}</td><td class="mudo">${s.origem === "manual" ? "por " + esc(s.informado_por || "?") : "WhatsApp"}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma medição no período.</p>`}
+        <h3 style="margin-top:16px">Oxímetro (SpO₂ e bpm)</h3>
+        ${oxiR.length ? `<div class="metricas"><div class="metrica"><div class="r">Medições</div><div class="v">${oxiR.length}</div></div><div class="metrica"><div class="r">SpO₂ média</div><div class="v">${mN(oxiR, "spo2")}${mN(oxiR, "spo2") !== "—" ? "%" : ""}</div></div><div class="metrica"><div class="r">bpm médio</div><div class="v">${mN(oxiR, "bpm")}</div></div><div class="metrica ${oxiR.filter((s) => s.fora_faixa).length ? "alerta" : ""}"><div class="r">Fora da faixa</div><div class="v">${oxiR.filter((s) => s.fora_faixa).length}</div></div></div>
+        <table><thead><tr><th>Quando</th><th>SpO₂</th><th>bpm</th><th>Origem</th></tr></thead><tbody>${oxiR.map((s) => `<tr><td>${fmtData(s.medido_em, p.fuso)}</td><td>${s.spo2 != null ? s.spo2 + "%" : "—"}</td><td>${s.bpm ?? "—"}</td><td class="mudo">${s.origem === "manual" ? "por " + esc(s.informado_por || "?") : "WhatsApp"}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma medição no período.</p>`}
+        <h3 style="margin-top:16px">Remédios eventuais usados</h3>
+        ${(() => { const usos = evRel.usos_30d.filter((u) => u.tomado_em >= deIso && u.tomado_em <= ateIso); return usos.length ? `<table><thead><tr><th>Quando</th><th>Remédio</th><th>Registro</th></tr></thead><tbody>${usos.map((u) => `<tr><td>${fmtData(u.tomado_em, p.fuso)}</td><td>${esc(evRel.medicamentos.find((m) => m.id === u.medicamento_id)?.nome || "?")}</td><td class="mudo">${u.origem === "painel" ? "por " + esc(u.informado_por || "?") : "WhatsApp"}${u.observacao ? " · " + esc(u.observacao) : ""}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhum uso registrado no período (últimos 30 dias considerados).</p>`; })()}
+        <h3 style="margin-top:16px">Água</h3>
+        ${(() => { const porDia = {}; aguaReg.forEach((r) => { const d2 = dataLocal(r.registrado_em, p.fuso); porDia[d2] = (porDia[d2] || 0) + r.ml; }); const dias2 = Object.values(porDia); const meta = p.agua_meta_ml || 2000; return dias2.length ? `<div class="metricas"><div class="metrica"><div class="r">Dias com registro</div><div class="v">${dias2.length}</div></div><div class="metrica"><div class="r">Média por dia</div><div class="v">${Math.round(dias2.reduce((a, b) => a + b, 0) / dias2.length).toLocaleString("pt-BR")} ml</div></div><div class="metrica"><div class="r">Meta batida</div><div class="v">${dias2.filter((v) => v >= meta).length} dias</div></div><div class="metrica"><div class="r">Meta diária</div><div class="v">${meta.toLocaleString("pt-BR")} ml</div></div></div>` : `<p class="mudo">Nenhum registro de água no período.</p>`; })()}
+        <h3 style="margin-top:16px">Medidas</h3>
+        ${(() => { const noPer = medidasRel.filter((m2) => m2.medido_em >= deIso && m2.medido_em <= ateIso); const altRef = medidasRel.find((m2) => m2.altura_cm)?.altura_cm; return noPer.length ? `<table><thead><tr><th>Quando</th><th>Peso</th><th>Altura</th><th>IMC</th></tr></thead><tbody>${noPer.map((m2) => `<tr><td>${fmtData(m2.medido_em, p.fuso)}</td><td>${m2.peso_kg ? String(m2.peso_kg).replace(".", ",") + " kg" : "—"}</td><td>${m2.altura_cm ? m2.altura_cm + " cm" : "—"}</td><td>${imc(m2.peso_kg, m2.altura_cm || altRef) ?? "—"}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma medida no período.</p>`; })()}
+        <h3 style="margin-top:16px">Todas as leituras</h3>
+        ${n ? `<table><thead><tr><th>Quando</th><th>Pressão</th><th>Pulso</th><th>Origem</th><th class="nao-imprimir"></th></tr></thead><tbody>${leituras.map((l) => `<tr><td>${fmtData(l.medido_em, p.fuso)}</td><td>${l.fora_faixa ? `<span class="chip erro">${l.sistolica}/${l.diastolica}</span>` : `${l.sistolica}/${l.diastolica}`}</td><td>${l.pulso ?? "—"}</td><td class="mudo">${l.origem}</td><td class="acoes nao-imprimir"><button class="leve perigo" data-del="${l.id}">Excluir</button></td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma leitura no período.</p>`}
+      </div>`;
+      corpo.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => { if (!confirm("Excluir esta leitura? Não tem volta.")) return; try { await api("leitura_excluir", { id: b.dataset.del }); toast("Leitura excluída.", "ok"); await gerar(); await carregar(); } catch (e) { toast(e.message, "erro"); } });
+      $("#r-imprimir", el).disabled = false;
+    } catch (e) { corpo.innerHTML = `<p style="color:var(--red)">Falha ao gerar: ${esc(e.message)}</p>`; }
+  };
+  $("#r-gerar", el).onclick = gerar;
+  $("#r-imprimir", el).onclick = () => { document.body.classList.add("imprimindo"); window.print(); document.body.classList.remove("imprimindo"); };
+  gerar();
+}
+
+// ======================= configurações =======================
+$("#btn-config").onclick = () => {
+  const c = estado.config;
+  const { el, fechar } = abrirModal(`
+    <h2>Configurações</h2>
+    <div class="campo"><label>Seu WhatsApp para receber alertas (DDI + DDD + número, só dígitos)</label><input id="c-admin" value="${esc(c.admin_telefone)}" inputmode="numeric"></div>
+    <div class="campo"><label>Minutos até reenviar um lembrete sem resposta (5 a 240)</label><input id="c-reenvio" type="number" value="${esc(c.reenvio_minutos || 30)}"></div>
+    ${estado.usuario?.papel === "admin" ? `<div class="campo" id="cfg-conv-wrap">${conviteBlocoHtml("cfg-conv")}</div><div class="campo"><label>Usuários do painel (cuidadores e médicos)</label><div id="usr-area"><p class="mudo">Carregando…</p></div></div>` : ""}
+    <div class="campo"><label>Versões</label><p class="mudo" style="margin:0">Painel ${VERSAO_PAINEL} · a versão do servidor aparece na tela de entrada.</p></div>
+    <div class="campo"><label>Testar envio</label><div class="linha"><input id="c-teste" placeholder="Telefone para teste" inputmode="numeric" value="${esc(c.admin_telefone)}"><button id="c-testar" style="flex:0">Enviar teste</button></div></div>
+    <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="c-salvar">Salvar</button></div>`);
+  if (estado.usuario?.papel === "admin") { renderUsuarios(el); (async () => { try { const c = await api("convite_meu"); conviteRender(el, "cfg-conv", c, null); } catch (e) { $("#cfg-conv-area", el).innerHTML = `<p class="mudo">${esc(e.message)}</p>`; } })(); }
+  $("#c-salvar", el).onclick = (e) => executar(e.target, async () => { await api("config_salvar", { admin_telefone: $("#c-admin", el).value, reenvio_minutos: $("#c-reenvio", el).value }); fechar(); toast("Configurações salvas.", "ok"); await carregar(); });
+  $("#c-testar", el).onclick = (e) => executar(e.target, async () => { await api("whats_testar", { telefone: $("#c-teste", el).value }); toast("Mensagem de teste enviada. Confira o WhatsApp.", "ok"); });
+};
+$("#btn-nova-pessoa").onclick = () => modalPessoa(null);
+$("#btn-medicos").onclick = () => modalMedicos();
+
+// ======================= início =======================
+const codConvite = new URLSearchParams(location.search).get("convite");
+if (codConvite) { telaCadastroConvite(codConvite.toUpperCase()); }
+else if (senha) { $("#login").classList.add("oculto"); $("#app").classList.remove("oculto"); $("#topo-app").classList.remove("oculto"); carregar(); }
+</script>
+</body>
+</html>
