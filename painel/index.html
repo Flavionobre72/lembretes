@@ -167,7 +167,8 @@ const API = "https://kxvhawrblwxgerajfsfa.supabase.co/functions/v1/painel-api";
 const DIAS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const FUSOS = ["America/Fortaleza","America/Sao_Paulo","America/Manaus","America/Belem","America/Recife","America/Bahia","America/Cuiaba","America/Rio_Branco","America/New_York","America/Chicago","America/Denver","America/Los_Angeles"];
 
-const VERSAO_PAINEL = "018";
+const VERSAO_PAINEL = "019";
+let epocaSessao = 0; // muda a cada entrar/sair; respostas de épocas antigas são descartadas
 let senha = sessionStorage.getItem("ls_senha") || "";
 let usuarioLogin = sessionStorage.getItem("ls_usuario") || "admin";
 let estado = { pessoas: [], leituras7d: [], envios7d: [], selecionada: null, config: {}, consultasFuturas: [], agua48h: [], medidas: [], sinais7d: [], usuario: null, medicos: [], visao: {}, fotos: {} };
@@ -228,13 +229,13 @@ async function entrar() {
   const s = $("#senha").value;
   if (!s) { $("#login-erro").textContent = "Digite a senha."; return; }
   usuarioLogin = $("#usuario").value.trim() || "admin";
-  senha = s; $("#login-erro").textContent = "";
+  senha = s; epocaSessao++; $("#login-erro").textContent = "";
   const be = $("#btn-entrar"); be.disabled = true; be.textContent = "Entrando…";
   try { const pg = await api("ping"); estado.usuario = pg.usuario || null; sessionStorage.setItem("ls_senha", senha); sessionStorage.setItem("ls_usuario", usuarioLogin); $("#login").classList.add("oculto"); $("#app").classList.remove("oculto"); $("#topo-app").classList.remove("oculto"); await carregar(); }
   catch (e) { senha = ""; $("#login-erro").textContent = e.message; }
   be.disabled = false; be.textContent = "Entrar";
 }
-function sair() { senha = ""; usuarioLogin = "admin"; estado.usuario = null; sessionStorage.removeItem("ls_senha"); sessionStorage.removeItem("ls_usuario"); document.querySelectorAll(".modal-fundo").forEach((m) => m.remove()); $("#app").classList.add("oculto"); $("#topo-app").classList.add("oculto"); $("#login").classList.remove("oculto"); $("#senha").value = ""; }
+function sair() { senha = ""; usuarioLogin = "admin"; epocaSessao++; estado = { pessoas: [], leituras7d: [], envios7d: [], selecionada: null, config: {}, consultasFuturas: [], agua48h: [], medidas: [], sinais7d: [], usuario: null, medicos: [], visao: {}, fotos: {} }; sessionStorage.removeItem("ls_senha"); sessionStorage.removeItem("ls_usuario"); document.querySelectorAll(".modal-fundo").forEach((m) => m.remove()); $("#app").classList.add("oculto"); $("#topo-app").classList.add("oculto"); $("#login").classList.remove("oculto"); $("#senha").value = ""; }
 $("#btn-entrar").onclick = entrar;
 $("#lnk-esqueci").onclick = (e) => { e.preventDefault(); modalEsqueciSenha(); };
 $("#v-painel").textContent = VERSAO_PAINEL;
@@ -253,8 +254,10 @@ $("#btn-sair").onclick = sair;
 
 // ======================= dados =======================
 async function carregar() {
+  const epoca = epocaSessao;
   try {
     const d = await api("pessoas_listar");
+    if (epoca !== epocaSessao) return; // resposta de uma sessão que já acabou
     estado.pessoas = d.pessoas || []; estado.leituras7d = d.leituras_7d || []; estado.envios7d = d.envios_7d || [];
     estado.consultasFuturas = d.consultas_futuras || []; estado.agua48h = d.agua_48h || []; estado.medidas = d.medidas || []; estado.sinais7d = d.sinais_7d || [];
     if (!estado.usuario) { const pg = await api("ping"); estado.usuario = pg.usuario || null; }
@@ -271,6 +274,7 @@ async function carregar() {
     $("#btn-meu-convite").onclick = () => { const { el } = abrirModal(`<h2>Meu convite</h2>${conviteBlocoHtml("mc")}<div class="pe"><button data-fechar>Fechar</button></div>`); (async () => { try { const c = await api("convite_meu"); conviteRender(el, "mc", c); } catch (e) { $("#mc-area", el).innerHTML = `<p class="mudo">${esc(e.message)}</p>`; } })(); };
     if (!estado.selecionada && solo && estado.pessoas.length === 1) estado.selecionada = estado.pessoas[0].id; // admin sempre abre na visão geral
     estado.config = await api("config_ler");
+    if (epoca !== epocaSessao) return;
     renderLista();
     if (estado.selecionada && !estado.pessoas.find((p) => p.id === estado.selecionada)) estado.selecionada = null;
     renderDetalhe();

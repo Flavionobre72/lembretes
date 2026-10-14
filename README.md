@@ -13,4 +13,4 @@ Acompanhamento de saúde: remédios, medições, consultas e prontuário, com le
 - **Painel:** automático — push na `main` → Netlify publica `painel/` (sem build, site estático).
 - **Funções:** publicadas no Supabase (projeto `lembretes-saude`); este repositório guarda a cópia de referência de cada versão no ar.
 
-Versões atuais: Painel 018 · painel-api v18 · lembretes v5.
+Versões atuais: Painel 019 · painel-api v18 · lembretes v5.
