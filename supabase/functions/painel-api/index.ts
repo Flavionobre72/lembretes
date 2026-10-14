@@ -14,7 +14,7 @@ const ZAPI_CLIENT_TOKEN = Deno.env.get("ZAPI_CLIENT_TOKEN") ?? "";
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
 const ANTHROPIC_MODEL = Deno.env.get("ANTHROPIC_MODEL") || "claude-sonnet-4-6";
 const ANTHROPIC_WORKSPACE_ID = Deno.env.get("ANTHROPIC_WORKSPACE_ID") ?? "";
-const VERSAO_API = "v18";
+const VERSAO_API = "v19";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const RESEND_FROM = Deno.env.get("RESEND_FROM") || "VigilCare <onboarding@resend.dev>";
 const cabecalhosIA = () => ({ "Content-Type": "application/json", "x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", ...(ANTHROPIC_WORKSPACE_ID ? { "anthropic-workspace-id": ANTHROPIC_WORKSPACE_ID } : {}) });
@@ -273,10 +273,13 @@ const acoes: Record<string, (d: Record<string, unknown>, u: Usuario) => Promise<
     if (!(sis >= 50 && sis <= 300 && dia >= 30 && dia <= 200 && sis > dia)) falha("Valores de pressão inválidos");
     const { data: p, error: ep } = await db.from("pessoas").select("pa_sis_max, pa_dia_max").eq("id", String(d.pessoa_id)).single();
     if (ep) falha(ep.message);
+    const origem = ["manual", "bluetooth", "foto"].includes(String(d.origem)) ? String(d.origem) : "manual";
+    const CHAVES_ALERTA = ["movimento", "bracadeira", "irregular", "pulso_alto", "pulso_baixo", "posicao"];
+    const alertas = Array.isArray(d.alertas) ? (d.alertas as unknown[]).map(String).filter((a) => CHAVES_ALERTA.includes(a)).slice(0, 6) : [];
     const { data, error } = await db.from("leituras_pa").insert({
       pessoa_id: String(d.pessoa_id), sistolica: sis, diastolica: dia, pulso: d.pulso ? Number(d.pulso) : null,
       medido_em: d.medido_em ? new Date(String(d.medido_em)).toISOString() : new Date().toISOString(),
-      origem: "manual", fora_faixa: sis >= p.pa_sis_max || dia >= p.pa_dia_max, informado_por: u.nome,
+      origem, alertas: alertas.length ? alertas : null, fora_faixa: sis >= p.pa_sis_max || dia >= p.pa_dia_max, informado_por: u.nome,
     }).select().single();
     if (error) falha(error.message);
     return data;
@@ -772,6 +775,30 @@ Horários a partir da frequência: 1x/dia → ["08:00"] (à noite → ["22:00"];
     return { profissional: (dados as Record<string, unknown>).profissional ?? "", data: (dados as Record<string, unknown>).data ?? null, itens };
   },
 
+  // ---------- leitura do visor do medidor de pressão pela IA ----------
+  async pressao_foto_ler(d) {
+    if (!ANTHROPIC_API_KEY) falha("Chave da IA não configurada (segredo ANTHROPIC_API_KEY)");
+    if (!d.pessoa_id) falha("pessoa_id obrigatório");
+    const b64 = String(d.arquivo_base64 ?? "");
+    const mime = String(d.mime ?? "image/jpeg");
+    if (!b64) falha("Imagem vazia");
+    if (b64.length > 8_000_000) falha("Imagem muito grande — tente de novo");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(mime)) falha("Envie uma foto JPG ou PNG");
+    const instrucao = `A imagem é o visor de um medidor de pressão arterial doméstico. Devolva SOMENTE um JSON válido, sem texto antes ou depois: {"sistolica":numero|null,"diastolica":numero|null,"pulso":numero|null}. A sistólica é o número maior (SYS), a diastólica o do meio (DIA), o pulso o menor (PUL/PULSE/coracaozinho). Se um número não estiver legível, use null. Não invente valores.`;
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: cabecalhosIA(),
+      body: JSON.stringify({ model: ANTHROPIC_MODEL, max_tokens: 200, system: instrucao, messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: mime, data: b64 } }, { type: "text", text: "Leia o visor." }] }] }),
+    });
+    const j = await r.json();
+    if (!r.ok) falha(`IA HTTP ${r.status}: ${JSON.stringify(j).slice(0, 300)}`);
+    const saida = (j.content ?? []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("\n").trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
+    let dados: Record<string, unknown>;
+    try { dados = JSON.parse(saida); } catch { falha("Não consegui ler o visor — tente uma foto de frente, sem reflexo"); }
+    const num = (v: unknown, a: number, b2: number) => { const n2 = Number(v); return Number.isFinite(n2) && n2 >= a && n2 <= b2 ? Math.round(n2) : null; };
+    return { sistolica: num(dados.sistolica, 50, 300), diastolica: num(dados.diastolica, 30, 200), pulso: num(dados.pulso, 20, 250) };
+  },
+
   // ---------- médicos (cadastro compartilhado) ----------
   async medicos_listar() {
     const { data, error } = await db.from("medicos").select("*").order("nome");
@@ -1175,7 +1202,7 @@ const acoesPublicas: Record<string, (d: Record<string, unknown>) => Promise<unkn
 
 // devolve o pessoa_id que a ação toca (undefined = ação sem paciente específico)
 async function escopoPessoa(acao: string, d: Record<string, unknown>): Promise<string | null | undefined> {
-  const porPessoaId = new Set(["medicacao_salvar", "pressao_horarios_salvar", "agua_horarios_salvar", "sinal_horarios_salvar", "leituras_listar", "leitura_inserir", "envios_listar", "consultas_listar", "consulta_salvar", "documento_upload_url", "documento_salvar", "documentos_listar", "medida_inserir", "medidas_listar", "agua_listar", "agua_inserir", "eventuais_listar", "eventual_salvar", "sinais_listar", "sinal_inserir", "historico_salvar", "anamnese_ler", "anamnese_salvar", "mensagens_listar", "receita_ler", "comorbidades_salvar", "pessoa_foto_salvar", "pessoa_foto_url", "pessoa_foto_excluir", "rede_listar", "convite_familiar", "convite_familiar_regenerar", "convite_familiar_ativar"]);
+  const porPessoaId = new Set(["medicacao_salvar", "pressao_horarios_salvar", "agua_horarios_salvar", "sinal_horarios_salvar", "leituras_listar", "leitura_inserir", "envios_listar", "consultas_listar", "consulta_salvar", "documento_upload_url", "documento_salvar", "documentos_listar", "medida_inserir", "medidas_listar", "agua_listar", "agua_inserir", "eventuais_listar", "eventual_salvar", "sinais_listar", "sinal_inserir", "historico_salvar", "anamnese_ler", "anamnese_salvar", "mensagens_listar", "receita_ler", "pressao_foto_ler", "comorbidades_salvar", "pessoa_foto_salvar", "pessoa_foto_url", "pessoa_foto_excluir", "rede_listar", "convite_familiar", "convite_familiar_regenerar", "convite_familiar_ativar"]);
   if (porPessoaId.has(acao)) return d.pessoa_id ? String(d.pessoa_id) : null;
   if (acao === "pessoa_salvar") return d.id ? String(d.id) : null;
   const tabelaPorAcao: Record<string, [string, string]> = {

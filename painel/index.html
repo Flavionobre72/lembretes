@@ -167,7 +167,7 @@ const API = "https://kxvhawrblwxgerajfsfa.supabase.co/functions/v1/painel-api";
 const DIAS = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 const FUSOS = ["America/Fortaleza","America/Sao_Paulo","America/Manaus","America/Belem","America/Recife","America/Bahia","America/Cuiaba","America/Rio_Branco","America/New_York","America/Chicago","America/Denver","America/Los_Angeles"];
 
-const VERSAO_PAINEL = "019";
+const VERSAO_PAINEL = "020";
 let epocaSessao = 0; // muda a cada entrar/sair; respostas de épocas antigas são descartadas
 let senha = sessionStorage.getItem("ls_senha") || "";
 let usuarioLogin = sessionStorage.getItem("ls_usuario") || "admin";
@@ -369,7 +369,7 @@ function renderDetalhe() {
       <div class="metrica"><div class="r">Adesão aos remédios (7d)</div><div class="v">${adesao}</div></div>
     </div>
     ${leituras.length ? `<table><thead><tr><th>Quando</th><th>Pressão</th><th>Pulso</th><th>Origem</th></tr></thead><tbody>
-      ${leituras.slice(0, 8).map((l) => `<tr><td>${fmtData(l.medido_em, p.fuso)}</td><td>${l.fora_faixa ? `<span class="chip erro">${l.sistolica}/${l.diastolica}</span>` : `${l.sistolica}/${l.diastolica}`}</td><td>${l.pulso ?? "—"}</td><td class="mudo">${l.origem}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma leitura nos últimos 7 dias.</p>`}
+      ${leituras.slice(0, 8).map((l) => `<tr><td>${fmtData(l.medido_em, p.fuso)}</td><td>${l.fora_faixa ? `<span class="chip erro">${l.sistolica}/${l.diastolica}</span>` : `${l.sistolica}/${l.diastolica}`}</td><td>${l.pulso ?? "—"}</td><td class="mudo">${origemPA(l)}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma leitura nos últimos 7 dias.</p>`}
   </section>
 
   <section class="bloco">
@@ -581,15 +581,137 @@ function modalHorariosPA(p, ags) {
   $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("pressao_horarios_salvar", { pessoa_id: p.id, horarios: horariosLer(el), dias_semana: diasLer(el) }); fechar(); toast("Horários salvos.", "ok"); await carregar(); });
 }
 
+// ======================= pressão: medidor Bluetooth, foto do visor e manual =======================
+const PA_ORIGEM = { manual: "manual", whatsapp: "WhatsApp", bluetooth: "medidor ⌁", foto: "foto" };
+const PA_ALERTAS = { movimento: "movimento na medição", bracadeira: "braçadeira frouxa", irregular: "batimento irregular", pulso_alto: "pulso alto", pulso_baixo: "pulso baixo", posicao: "posição imprópria" };
+function origemPA(l) { return `${PA_ORIGEM[l.origem] || esc(l.origem)}${l.informado_por && l.origem !== "whatsapp" ? " · " + esc(l.informado_por) : ""}${(l.alertas || []).length ? `<div style="color:var(--red)">${l.alertas.map((a) => PA_ALERTAS[a] || esc(a)).join(" · ")}</div>` : ""}`; }
+// SFLOAT IEEE-11073 (16 bits): mantissa 12 + expoente 4, complemento de dois
+function lerSfloat(b, i) {
+  const v = b[i] | (b[i + 1] << 8);
+  if (v === 0x07ff || v === 0x0800 || v === 0x07fe || v === 0x0802) return null;
+  let m = v & 0x0fff; const e = (v >> 12) >= 8 ? (v >> 12) - 16 : (v >> 12);
+  if (m >= 0x0800) m -= 0x1000;
+  return m * Math.pow(10, e);
+}
+// Pacote padrão Blood Pressure Measurement (0x2A35) → { sistolica, diastolica, bpm, medido_em, alertas[] } ou null
+function lerMedicaoPressao(b) {
+  if (!b || b.length < 7) return null;
+  const fl = b[0]; let i = 1; const kpa = !!(fl & 1), f = kpa ? 7.50062 : 1;
+  const sis = lerSfloat(b, i), dia = lerSfloat(b, i + 2); i += 6;
+  const r = { sistolica: sis === null ? null : Math.round(sis * f), diastolica: dia === null ? null : Math.round(dia * f), bpm: null, medido_em: null, alertas: [] };
+  if (fl & 2) {
+    if (b.length < i + 7) return null;
+    const ano = b[i] | (b[i + 1] << 8), mes = b[i + 2], diaM = b[i + 3], h = b[i + 4], mi = b[i + 5], sg = b[i + 6]; i += 7;
+    if (ano >= 2000 && mes >= 1 && mes <= 12 && diaM >= 1 && diaM <= 31 && h <= 23 && mi <= 59 && sg <= 59) r.medido_em = new Date(ano, mes - 1, diaM, h, mi, sg);
+  }
+  if (fl & 4) { if (b.length < i + 2) return null; const pz = lerSfloat(b, i); r.bpm = pz === null ? null : Math.round(pz); i += 2; }
+  if (fl & 8) { if (b.length < i + 1) return null; i += 1; }
+  if (fl & 16) {
+    if (b.length < i + 2) return null;
+    const st = b[i] | (b[i + 1] << 8);
+    if (st & 1) r.alertas.push("movimento");
+    if (st & 2) r.alertas.push("bracadeira");
+    if (st & 4) r.alertas.push("irregular");
+    const faixa = (st >> 3) & 3;
+    if (faixa === 1) r.alertas.push("pulso_alto");
+    if (faixa === 2) r.alertas.push("pulso_baixo");
+    if (st & 32) r.alertas.push("posicao");
+  }
+  if (r.sistolica === null || r.diastolica === null) return null;
+  return r;
+}
+function fotoParaBase64(arquivo, lado) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => { try { const k = Math.min(1, lado / Math.max(img.width, img.height)); const cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(img.src); res(cv.toDataURL("image/jpeg", 0.85).split(",")[1]); } catch (e) { rej(e); } };
+    img.onerror = () => rej(new Error("Não consegui abrir a imagem"));
+    img.src = URL.createObjectURL(arquivo);
+  });
+}
 function modalLeitura(p) {
+  const temBt = !!(navigator.bluetooth && navigator.bluetooth.requestDevice);
+  const iphone = /iPhone|iPad|iPod/.test(navigator.userAgent);
   const agora = new Date(); agora.setSeconds(0, 0);
   const local = new Date(agora.getTime() - agora.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  const { el, fechar } = abrirModal(`
-    <h2>Lançar leitura — ${esc(p.nome)}</h2>
-    <div class="linha"><div class="campo"><label>Sistólica</label><input id="f-sis" type="number" inputmode="numeric"></div><div class="campo"><label>Diastólica</label><input id="f-dia" type="number" inputmode="numeric"></div><div class="campo"><label>Pulso (opcional)</label><input id="f-pulso" type="number" inputmode="numeric"></div></div>
-    <div class="campo"><label>Data e hora da medição</label><input id="f-quando" type="datetime-local" value="${local}"></div>
-    <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`);
-  $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("leitura_inserir", { pessoa_id: p.id, sistolica: $("#f-sis", el).value, diastolica: $("#f-dia", el).value, pulso: $("#f-pulso", el).value, medido_em: $("#f-quando", el).value }); fechar(); toast("Leitura registrada.", "ok"); await carregar(); });
+  const { el, fechar } = abrirModal(`<h2>Lançar leitura — ${esc(p.nome)}</h2><div id="pa-abas" style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap"></div><div id="pa-corpo"></div>`, true);
+  const P = { aba: temBt ? "bt" : "foto", disp: null, leituras: [], lendo: false };
+  const desconectar = () => { try { if (P.disp && P.disp.gatt) P.disp.gatt.disconnect(); } catch {} P.disp = null; P.lendo = false; };
+  el.addEventListener("click", (e) => { if (e.target === el) desconectar(); });
+  const fecharTudo = () => { desconectar(); fechar(); };
+  async function conectar() {
+    try {
+      P.disp = await navigator.bluetooth.requestDevice({ filters: [{ services: ["blood_pressure"] }], optionalServices: ["device_information"] });
+      const gatt = await P.disp.gatt.connect();
+      const sv = await gatt.getPrimaryService("blood_pressure");
+      const ca = await sv.getCharacteristic("blood_pressure_measurement");
+      ca.addEventListener("characteristicvaluechanged", (ev) => {
+        const r = lerMedicaoPressao(new Uint8Array(ev.target.value.buffer));
+        if (!r) return;
+        const chave = `${r.sistolica}/${r.diastolica}@${r.medido_em ? r.medido_em.getTime() : ""}`;
+        if (P.leituras.some((x) => x.chave === chave)) return;
+        P.leituras.unshift({ ...r, chave, sel: true });
+        desenhar();
+      });
+      await ca.startNotifications();
+      P.lendo = true; desenhar();
+    } catch (e) {
+      if (e && e.name === "NotFoundError") return; // pessoa cancelou a escolha
+      let m = (e && e.message) || String(e);
+      if (e && e.name === "NetworkError") m = "Não consegui conectar. Deixe o símbolo ⌁ piscando no medidor e tente de novo.";
+      if (e && e.name === "SecurityError") m = "O navegador bloqueou o Bluetooth — permita o acesso a dispositivos próximos nas configurações.";
+      if (e && e.name === "NotSupportedError") m = "O pareamento não completou. Remova o medidor do Bluetooth do sistema e pareie de novo por aqui.";
+      toast(m, "erro");
+    }
+  }
+  function desenhar() {
+    $("#pa-abas", el).innerHTML = [["bt", "⌁ Medidor"], ["foto", "📷 Foto do visor"], ["manual", "Manual"]].map(([v, t]) => `<button type="button" class="${P.aba === v ? "primario" : "leve"}" data-aba="${v}">${t}</button>`).join("");
+    $("#pa-abas", el).querySelectorAll("[data-aba]").forEach((b) => b.onclick = () => { if (b.dataset.aba !== "bt") desconectar(); P.aba = b.dataset.aba; desenhar(); });
+    const c = $("#pa-corpo", el);
+    if (P.aba === "bt") {
+      if (!temBt) c.innerHTML = `<p class="mudo">${iphone ? "No iPhone o navegador não conecta ao medidor por Bluetooth — use a aba <b>📷 Foto do visor</b>: a IA lê os números para você." : "Este navegador não tem Bluetooth para páginas. No Android, Windows ou Mac abra pelo <b>Chrome</b> — ou use a aba <b>📷 Foto do visor</b>."}</p><div class="pe"><button data-fechar>Fechar</button></div>`;
+      else {
+        c.innerHTML = `<p class="mudo" style="margin-top:0"><b>1.</b> Ligue o Bluetooth deste aparelho. <b>2.</b> Deixe o símbolo ⌁ piscando no medidor (na primeira vez, segure o botão Bluetooth dele). <b>3.</b> Toque abaixo e escolha o medidor. Funciona com Omron, Beurer, A&D e outros com o serviço padrão de pressão. Feche o app do fabricante antes.</p>
+        <button class="primario" id="pa-conectar"${P.lendo ? " disabled" : ""}>${P.lendo ? "Recebendo… faça a medição ou envie a memória (⌁)" : "⌁ Receber do medidor"}</button>
+        <div style="margin-top:12px">${P.leituras.length ? `<table><thead><tr><th></th><th>Pressão</th><th>Pulso</th><th>Quando</th><th>Avisos do aparelho</th></tr></thead><tbody>${P.leituras.map((r, i) => `<tr><td><input type="checkbox" data-sel="${i}" ${r.sel ? "checked" : ""} style="width:auto"></td><td><b>${r.sistolica}/${r.diastolica}</b></td><td>${r.bpm ?? "—"}</td><td class="mudo">${r.medido_em ? fmtData(r.medido_em.toISOString(), p.fuso) : "agora"}</td><td class="mudo"${r.alertas.length ? ' style="color:var(--red)"' : ""}>${r.alertas.map((a) => PA_ALERTAS[a] || a).join(" · ") || "—"}</td></tr>`).join("")}</tbody></table>` : (P.lendo ? '<p class="mudo">Aguardando as medições do aparelho…</p>' : "")}</div>
+        <div class="pe"><button data-fechar>Fechar</button><button class="primario" id="pa-salvar"${P.leituras.some((r) => r.sel) ? "" : " disabled"}>Salvar marcadas</button></div>`;
+        $("#pa-conectar", el).onclick = conectar;
+        c.querySelectorAll("[data-sel]").forEach((ch) => ch.onchange = () => { P.leituras[+ch.dataset.sel].sel = ch.checked; $("#pa-salvar", el).disabled = !P.leituras.some((r) => r.sel); });
+        $("#pa-salvar", el).onclick = (e) => executar(e.target, async () => {
+          const sel = P.leituras.filter((r) => r.sel);
+          if (!sel.length) throw new Error("Marque pelo menos uma leitura");
+          for (const r of sel) await api("leitura_inserir", { pessoa_id: p.id, sistolica: r.sistolica, diastolica: r.diastolica, pulso: r.bpm, medido_em: r.medido_em ? r.medido_em.toISOString() : new Date().toISOString(), origem: "bluetooth", alertas: r.alertas });
+          fecharTudo(); toast(sel.length + " leitura(s) do medidor registrada(s).", "ok"); await carregar();
+        });
+      }
+    } else if (P.aba === "foto") {
+      c.innerHTML = `<p class="mudo" style="margin-top:0">Fotografe o visor de frente, sem reflexo. A IA lê os números e você confere antes de salvar.</p>
+      <div class="campo"><label>Foto do visor</label><input id="pa-foto" type="file" accept="image/*" capture="environment"></div>
+      <div class="linha"><div class="campo"><label>Sistólica</label><input id="pf-sis" type="number" inputmode="numeric"></div><div class="campo"><label>Diastólica</label><input id="pf-dia" type="number" inputmode="numeric"></div><div class="campo"><label>Pulso (opcional)</label><input id="pf-pulso" type="number" inputmode="numeric"></div></div>
+      <div class="campo"><label>Data e hora da medição</label><input id="pf-quando" type="datetime-local" value="${local}"></div>
+      <p class="mudo" id="pa-foto-msg" style="margin:0"></p>
+      <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="pf-salvar">Salvar</button></div>`;
+      $("#pa-foto", el).onchange = async () => {
+        const f = $("#pa-foto", el).files[0]; if (!f) return;
+        $("#pa-foto-msg", el).textContent = "Lendo o visor…";
+        try {
+          const b64 = await fotoParaBase64(f, 1280);
+          const r = await api("pressao_foto_ler", { pessoa_id: p.id, arquivo_base64: b64, mime: "image/jpeg" });
+          if (r.sistolica) $("#pf-sis", el).value = r.sistolica;
+          if (r.diastolica) $("#pf-dia", el).value = r.diastolica;
+          if (r.pulso) $("#pf-pulso", el).value = r.pulso;
+          $("#pa-foto-msg", el).textContent = r.sistolica && r.diastolica ? "Li o visor — confira os números e salve." : "Não li todos os números — complete à mão e salve.";
+        } catch (e2) { $("#pa-foto-msg", el).textContent = ""; toast(e2.message, "erro"); }
+      };
+      $("#pf-salvar", el).onclick = (e) => executar(e.target, async () => { await api("leitura_inserir", { pessoa_id: p.id, sistolica: $("#pf-sis", el).value, diastolica: $("#pf-dia", el).value, pulso: $("#pf-pulso", el).value, medido_em: $("#pf-quando", el).value, origem: "foto" }); fecharTudo(); toast("Leitura registrada.", "ok"); await carregar(); });
+    } else {
+      c.innerHTML = `<div class="linha"><div class="campo"><label>Sistólica</label><input id="f-sis" type="number" inputmode="numeric"></div><div class="campo"><label>Diastólica</label><input id="f-dia" type="number" inputmode="numeric"></div><div class="campo"><label>Pulso (opcional)</label><input id="f-pulso" type="number" inputmode="numeric"></div></div>
+      <div class="campo"><label>Data e hora da medição</label><input id="f-quando" type="datetime-local" value="${local}"></div>
+      <div class="pe"><button data-fechar>Cancelar</button><button class="primario" id="f-salvar">Salvar</button></div>`;
+      $("#f-salvar", el).onclick = (e) => executar(e.target, async () => { await api("leitura_inserir", { pessoa_id: p.id, sistolica: $("#f-sis", el).value, diastolica: $("#f-dia", el).value, pulso: $("#f-pulso", el).value, medido_em: $("#f-quando", el).value }); fecharTudo(); toast("Leitura registrada.", "ok"); await carregar(); });
+    }
+    el.querySelectorAll("[data-fechar]").forEach((b) => b.onclick = fecharTudo);
+  }
+  desenhar();
 }
 
 async function modalAtividade(p) {
@@ -1590,7 +1712,7 @@ function modalRelatorio(p) {
         <h3 style="margin-top:16px">Medidas</h3>
         ${(() => { const noPer = medidasRel.filter((m2) => m2.medido_em >= deIso && m2.medido_em <= ateIso); const altRef = medidasRel.find((m2) => m2.altura_cm)?.altura_cm; return noPer.length ? `<table><thead><tr><th>Quando</th><th>Peso</th><th>Altura</th><th>IMC</th></tr></thead><tbody>${noPer.map((m2) => `<tr><td>${fmtData(m2.medido_em, p.fuso)}</td><td>${m2.peso_kg ? String(m2.peso_kg).replace(".", ",") + " kg" : "—"}</td><td>${m2.altura_cm ? m2.altura_cm + " cm" : "—"}</td><td>${imc(m2.peso_kg, m2.altura_cm || altRef) ?? "—"}</td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma medida no período.</p>`; })()}
         <h3 style="margin-top:16px">Todas as leituras</h3>
-        ${n ? `<table><thead><tr><th>Quando</th><th>Pressão</th><th>Pulso</th><th>Origem</th><th class="nao-imprimir"></th></tr></thead><tbody>${leituras.map((l) => `<tr><td>${fmtData(l.medido_em, p.fuso)}</td><td>${l.fora_faixa ? `<span class="chip erro">${l.sistolica}/${l.diastolica}</span>` : `${l.sistolica}/${l.diastolica}`}</td><td>${l.pulso ?? "—"}</td><td class="mudo">${l.origem}</td><td class="acoes nao-imprimir"><button class="leve perigo" data-del="${l.id}">Excluir</button></td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma leitura no período.</p>`}
+        ${n ? `<table><thead><tr><th>Quando</th><th>Pressão</th><th>Pulso</th><th>Origem</th><th class="nao-imprimir"></th></tr></thead><tbody>${leituras.map((l) => `<tr><td>${fmtData(l.medido_em, p.fuso)}</td><td>${l.fora_faixa ? `<span class="chip erro">${l.sistolica}/${l.diastolica}</span>` : `${l.sistolica}/${l.diastolica}`}</td><td>${l.pulso ?? "—"}</td><td class="mudo">${origemPA(l)}</td><td class="acoes nao-imprimir"><button class="leve perigo" data-del="${l.id}">Excluir</button></td></tr>`).join("")}</tbody></table>` : `<p class="mudo">Nenhuma leitura no período.</p>`}
       </div>`;
       corpo.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => { if (!confirm("Excluir esta leitura? Não tem volta.")) return; try { await api("leitura_excluir", { id: b.dataset.del }); toast("Leitura excluída.", "ok"); await gerar(); await carregar(); } catch (e) { toast(e.message, "erro"); } });
       $("#r-imprimir", el).disabled = false;
